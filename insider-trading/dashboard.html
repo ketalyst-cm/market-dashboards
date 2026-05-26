@@ -1509,11 +1509,18 @@ function renderPrefDetailPane(r) {
     }
   }
 
+  // Prefer the actual PDF filing (available for BSE announcement rows) over
+  // the raw XBRL XML link. NSE preferential rows have only XBRL — fall back
+  // to that.
+  const pdfUrl = r.attachment_url || (r.raw && r.raw.attachment_url);
+  const checklistUrl = (r.raw && r.raw.checklist_zip_file_name) || r.checklist_url;
   return `<tr class="detail-row"><td colspan="10"><div class="detail-pane">
     <div class="detail-grid">${fields.join('')}</div>
     <div class="detail-actions">
-      ${r.details_link ? `<a href="${escapeAttr(r.details_link)}" target="_blank">Open XBRL XML ↗</a>` : ''}
-      ${r.raw && r.raw.checklist_zip_file_name ? `<a href="${escapeAttr(r.raw.checklist_zip_file_name)}" target="_blank">Open Notice ZIP ↗</a>` : ''}
+      ${pdfUrl ? `<a href="${escapeAttr(pdfUrl)}" target="_blank">📄 Open Filing PDF ↗</a>` : ''}
+      ${r.details_link && !pdfUrl ? `<a href="${escapeAttr(r.details_link)}" target="_blank">Open XBRL ↗</a>` : ''}
+      ${r.details_link && pdfUrl ? `<a href="${escapeAttr(r.details_link)}" target="_blank" style="opacity:.7;font-size:11px">XBRL source ↗</a>` : ''}
+      ${checklistUrl ? `<a href="${escapeAttr(checklistUrl)}" target="_blank">Open Notice ZIP ↗</a>` : ''}
       ${r.symbol ? `<a href="https://www.nseindia.com/get-quotes/equity?symbol=${escapeAttr(r.symbol)}" target="_blank">NSE quote ↗</a>` : ''}
     </div>
   </div></td></tr>`;
