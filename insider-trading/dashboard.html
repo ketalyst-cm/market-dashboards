@@ -1,0 +1,1631 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Insider Trading Dashboard — NSE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --surface: #ffffff;
+    --surface-2: #f7f8fc;
+    --border: #e3e7ef;
+    --text: #1b1f2a;
+    --text-muted: #6b7282;
+    --text-faint: #97a0b1;
+    --primary: #4f46e5;
+    --primary-soft: #eef0ff;
+    --buy: #10b981;
+    --buy-soft: #d1fae5;
+    --sell: #ef4444;
+    --sell-soft: #fee2e2;
+    --other: #f59e0b;
+    --shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 12px rgba(15,23,42,.04);
+    --radius: 12px;
+  }
+  [data-theme="dark"] {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-2: #1c222b;
+    --border: #2a323d;
+    --text: #e6edf3;
+    --text-muted: #9aa4b2;
+    --text-faint: #6e7681;
+    --primary: #818cf8;
+    --primary-soft: #1e1b4b;
+    --buy: #34d399;
+    --buy-soft: #064e3b;
+    --sell: #f87171;
+    --sell-soft: #5a1f1f;
+    --other: #fbbf24;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.25);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.45;
+    min-height: 100vh;
+  }
+  code, .mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+
+  /* Layout */
+  .app { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+  @media (max-width: 1024px) { .app { grid-template-columns: 1fr; } .sidebar { position: static !important; height: auto !important; } }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 18px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 800; font-size: 16px;
+    margin-bottom: 22px;
+  }
+  .brand-mark {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 800;
+  }
+  .filter-group { margin-bottom: 18px; }
+  .filter-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--text-muted); font-weight: 600;
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 6px;
+  }
+  .filter-label .reset {
+    font-size: 10px; color: var(--primary); cursor: pointer; text-transform: none; letter-spacing: 0;
+  }
+  input[type="text"], input[type="date"], input[type="number"], select, textarea {
+    width: 100%;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+  }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: all .15s;
+  }
+  .chip:hover { border-color: var(--primary); }
+  .chip.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  .chip.buy.active { background: var(--buy); border-color: var(--buy); }
+  .chip.sell.active { background: var(--sell); border-color: var(--sell); }
+  .chip.other.active { background: var(--other); border-color: var(--other); }
+
+  .row { display: flex; gap: 8px; }
+  .row > * { flex: 1; }
+
+  .multi-select {
+    max-height: 140px; overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-2);
+    padding: 4px;
+  }
+  .multi-option {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 12px;
+  }
+  .multi-option:hover { background: var(--surface); }
+  .multi-option input { width: auto; }
+
+  /* Main */
+  .main { padding: 20px 28px 60px; max-width: 100%; min-width: 0; }
+
+  /* Tab bar */
+  .tabs { display: flex; gap: 4px; margin: 0 0 16px;
+          border-bottom: 1px solid var(--border); padding-bottom: 0; }
+  .tab { padding: 10px 18px; cursor: pointer; font-size: 13px; font-weight: 600;
+         color: var(--text-muted); border-bottom: 2px solid transparent;
+         margin-bottom: -1px; transition: all .15s; user-select: none; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .tab .count { font-weight: 500; color: var(--text-faint); margin-left: 6px; font-size: 11px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .filter-group.insider-only, .filter-group.pref-only { display: none; }
+  body[data-active-tab="insider"] .filter-group.insider-only { display: block; }
+  body[data-active-tab="pref"]    .filter-group.pref-only    { display: block; }
+
+  /* Stage pill (preferential tab) */
+  .stage-pill { display: inline-block; padding: 2px 8px; border-radius: 4px;
+                font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .stage-pill.Announcement { background: rgba(139,92,246,.18); color: #7c3aed; }
+  .stage-pill.In-Principle { background: rgba(245,158,11,.18); color: #b45309; }
+  .stage-pill.Listing      { background: rgba(16,185,129,.15); color: #059669; }
+  [data-theme="dark"] .stage-pill.Announcement { color: #c4b5fd; }
+  [data-theme="dark"] .stage-pill.In-Principle { color: #fbbf24; }
+  [data-theme="dark"] .stage-pill.Listing      { color: #34d399; }
+
+  /* Allottee category pill */
+  .cat-pill { display: inline-block; padding: 2px 8px; border-radius: 4px;
+              font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .cat-pill.cat-promoter   { background: rgba(79,70,229,.15); color: #4f46e5; }
+  .cat-pill.cat-mixed      { background: rgba(139,92,246,.15); color: #7c3aed; }
+  .cat-pill.cat-nonpromoter{ background: rgba(14,165,233,.15); color: #0369a1; }
+  [data-theme="dark"] .cat-pill.cat-promoter    { color: #a5b4fc; }
+  [data-theme="dark"] .cat-pill.cat-mixed       { color: #c4b5fd; }
+  [data-theme="dark"] .cat-pill.cat-nonpromoter { color: #7dd3fc; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px; gap: 12px; flex-wrap: wrap;
+  }
+  .topbar h1 { margin: 0; font-size: 22px; font-weight: 700; }
+  .topbar .subtitle { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
+  button {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all .15s;
+  }
+  button:hover { border-color: var(--primary); color: var(--primary); }
+  button.primary {
+    background: var(--primary); color: white; border-color: var(--primary);
+  }
+  button.primary:hover { opacity: .9; color: white; }
+
+  /* KPI tiles */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+  }
+  .kpi .label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--text-muted); font-weight: 600;
+  }
+  .kpi .value {
+    font-size: 22px; font-weight: 700; margin-top: 6px;
+  }
+  .kpi .delta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .kpi.buy .value { color: var(--buy); }
+  .kpi.sell .value { color: var(--sell); }
+  .kpi.net .value.pos { color: var(--buy); }
+  .kpi.net .value.neg { color: var(--sell); }
+
+  /* Charts */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 1100px) { .chart-grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .card h3 { margin: 0 0 12px; font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .05em; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .card-head h3 { margin: 0; }
+  .scale-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .scale-toggle .seg { padding: 4px 10px; font-size: 11px; cursor: pointer; background: var(--surface-2); color: var(--text-muted); border-right: 1px solid var(--border); user-select: none; transition: all .15s; }
+  .scale-toggle .seg:last-child { border-right: none; }
+  .scale-toggle .seg:hover { color: var(--text); }
+  .scale-toggle .seg.active { background: var(--primary); color: white; }
+  .clip-note { font-size: 11px; color: var(--text-muted); margin-top: 6px; text-align: center; }
+  .chart-container { position: relative; height: 260px; }
+  .chart-container.small { height: 220px; }
+
+  .chart-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 1100px) { .chart-row { grid-template-columns: 1fr; } }
+
+  /* Table */
+  .table-card { padding: 0; overflow: hidden; }
+  .table-toolbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    gap: 12px; flex-wrap: wrap;
+  }
+  .table-toolbar .count { font-size: 13px; color: var(--text-muted); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    position: sticky; top: 0; z-index: 1;
+  }
+  thead th .arrow { color: var(--primary); margin-left: 4px; }
+  tbody td {
+    padding: 11px 12px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr { cursor: pointer; transition: background .12s; }
+  tbody tr:hover { background: var(--surface-2); }
+  tbody tr.expanded { background: var(--primary-soft); }
+  .bucket-pill {
+    display: inline-block; padding: 2px 8px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+  }
+  .bucket-pill.Buy   { background: var(--buy-soft);  color: var(--buy);  }
+  .bucket-pill.Sell  { background: var(--sell-soft); color: var(--sell); }
+  .bucket-pill.Other { background: rgba(245,158,11,.15); color: var(--other); }
+
+  /* Mode-of-acquisition pills — distinct color per kind of transaction.
+     Uses rgba so the same palette works in light & dark themes. */
+  .mode-pill { display: inline-block; padding: 2px 8px; border-radius: 4px;
+               font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .mode-pill.mode-buy      { background: rgba(16,185,129,.15);  color: #059669; }
+  .mode-pill.mode-sell     { background: rgba(239,68,68,.15);   color: #dc2626; }
+  .mode-pill.mode-pledge   { background: rgba(245,158,11,.18);  color: #b45309; }
+  .mode-pill.mode-esop     { background: rgba(139,92,246,.18);  color: #7c3aed; }
+  .mode-pill.mode-offmarket{ background: rgba(107,114,128,.18); color: #4b5563; }
+  .mode-pill.mode-gift     { background: rgba(14,165,233,.18);  color: #0369a1; }
+  .mode-pill.mode-transfer { background: rgba(156,163,175,.20); color: #475569; }
+  .mode-pill.mode-allotment{ background: rgba(59,130,246,.18);  color: #1d4ed8; }
+  .mode-pill.mode-exercise { background: rgba(20,184,166,.18);  color: #0f766e; }
+  .mode-pill.mode-rights   { background: rgba(236,72,153,.18);  color: #be185d; }
+  .mode-pill.mode-other    { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+  /* Dark-mode text bumps for legibility */
+  [data-theme="dark"] .mode-pill.mode-buy      { color: #34d399; }
+  [data-theme="dark"] .mode-pill.mode-sell     { color: #f87171; }
+  [data-theme="dark"] .mode-pill.mode-pledge   { color: #fbbf24; }
+  [data-theme="dark"] .mode-pill.mode-esop     { color: #c4b5fd; }
+  [data-theme="dark"] .mode-pill.mode-offmarket{ color: #9ca3af; }
+  [data-theme="dark"] .mode-pill.mode-gift     { color: #7dd3fc; }
+  [data-theme="dark"] .mode-pill.mode-transfer { color: #cbd5e1; }
+  [data-theme="dark"] .mode-pill.mode-allotment{ color: #93c5fd; }
+  [data-theme="dark"] .mode-pill.mode-exercise { color: #5eead4; }
+  [data-theme="dark"] .mode-pill.mode-rights   { color: #f9a8d4; }
+
+  .symbol-cell {
+    font-weight: 700; color: var(--primary); cursor: pointer;
+  }
+  .num-cell { text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+  .num-cell.buy { color: var(--buy); }
+  .num-cell.sell { color: var(--sell); }
+
+  .pagination {
+    display: flex; gap: 6px; align-items: center; justify-content: center;
+    padding: 14px;
+  }
+  .pagination button { padding: 6px 12px; font-size: 12px; }
+  .pagination .info { color: var(--text-muted); font-size: 12px; margin: 0 10px; }
+
+  /* Detail expansion */
+  .detail-row td { background: var(--surface-2); padding: 0; }
+  .detail-pane { padding: 16px 20px; }
+  .detail-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 8px 24px;
+  }
+  .detail-grid .field {
+    display: flex; justify-content: space-between; gap: 12px;
+    border-bottom: 1px dashed var(--border); padding: 4px 0; font-size: 12.5px;
+  }
+  .detail-grid .field .k { color: var(--text-muted); }
+  .detail-grid .field .v { font-weight: 500; text-align: right; }
+  .detail-actions { margin-top: 12px; display: flex; gap: 8px; }
+  .detail-actions a {
+    color: var(--primary); text-decoration: none; font-size: 12px;
+    border: 1px solid var(--primary); padding: 5px 10px; border-radius: 6px;
+  }
+  .detail-actions a:hover { background: var(--primary-soft); }
+
+  /* Empty state */
+  .empty {
+    padding: 60px 20px; text-align: center; color: var(--text-muted);
+  }
+  .empty h3 { color: var(--text); margin: 0 0 8px; }
+
+  .badge-mute { color: var(--text-faint); }
+  .quick-range { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  .quick-range .chip { font-size: 11px; padding: 3px 8px; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">IT</div>
+      <div>Insider Trading<br><span style="font-weight:500;color:var(--text-muted);font-size:11px">NSE Dashboard</span></div>
+    </div>
+
+    <div class="filter-group">
+      <div class="filter-label">Search</div>
+      <input type="text" id="search" placeholder="Symbol, company, acquirer…">
+    </div>
+
+    <div class="filter-group">
+      <div class="filter-label">Date range
+        <span class="reset" data-reset="date">clear</span>
+      </div>
+      <div class="row">
+        <input type="date" id="dateFrom">
+        <input type="date" id="dateTo">
+      </div>
+      <div class="quick-range">
+        <span class="chip" data-quick="7">7d</span>
+        <span class="chip" data-quick="30">30d</span>
+        <span class="chip" data-quick="90">90d</span>
+        <span class="chip" data-quick="180">6m</span>
+        <span class="chip" data-quick="all">All</span>
+      </div>
+    </div>
+
+    <div class="filter-group insider-only">
+      <div class="filter-label">Transaction type
+        <span class="reset" data-reset="bucket">clear</span>
+      </div>
+      <div class="chip-row" id="bucketChips">
+        <span class="chip buy" data-bucket="Buy">Buy</span>
+        <span class="chip sell" data-bucket="Sell">Sell</span>
+        <span class="chip other" data-bucket="Other">Other</span>
+      </div>
+    </div>
+
+    <div class="filter-group insider-only">
+      <div class="filter-label">Person category
+        <span class="reset" data-reset="category">clear</span>
+      </div>
+      <div class="multi-select" id="categoryFilter"></div>
+    </div>
+
+    <div class="filter-group insider-only">
+      <div class="filter-label">Acquisition mode
+        <span class="reset" data-reset="mode">clear</span>
+      </div>
+      <div class="multi-select" id="modeFilter"></div>
+    </div>
+
+    <div class="filter-group pref-only">
+      <div class="filter-label">Stage
+        <span class="reset" data-reset="prefStage">clear</span>
+      </div>
+      <div class="chip-row" id="prefStageChips">
+        <span class="chip" data-stage="Announcement">Announcement</span>
+        <span class="chip" data-stage="In-Principle">In-Principle</span>
+        <span class="chip" data-stage="Listing">Listing</span>
+      </div>
+    </div>
+
+    <div class="filter-group pref-only">
+      <div class="filter-label">Allottee category
+        <span class="reset" data-reset="prefAllottee">clear</span>
+      </div>
+      <div class="multi-select" id="prefAllotteeFilter"></div>
+    </div>
+
+    <div class="filter-group">
+      <div class="filter-label">Symbol
+        <span class="reset" data-reset="symbol">clear</span>
+      </div>
+      <input type="text" id="symbolFilterSearch" placeholder="Filter symbols…">
+      <div class="multi-select" id="symbolFilter" style="margin-top:6px"></div>
+    </div>
+
+    <div class="filter-group">
+      <div class="filter-label">Min trade value (₹)
+        <span class="reset" data-reset="value">clear</span>
+      </div>
+      <input type="number" id="minValue" placeholder="e.g. 1000000" min="0">
+    </div>
+
+    <button id="resetAll" style="width:100%;margin-top:12px">Reset all filters</button>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Insider Trading Dashboard</h1>
+        <div class="subtitle" id="subtitle">Loading…</div>
+      </div>
+      <div class="topbar-actions">
+        <button id="themeToggle" title="Toggle theme">🌙 Dark</button>
+        <button id="reload">↻ Reload</button>
+        <button id="exportCsv" class="primary">⬇ Export CSV</button>
+      </div>
+    </div>
+
+    <!-- Tab switcher -->
+    <div class="tabs" id="tabs">
+      <div class="tab active" data-tab="insider">Insider Trading <span class="count" id="tabCountInsider"></span></div>
+      <div class="tab" data-tab="pref">Preferential Issues <span class="count" id="tabCountPref"></span></div>
+    </div>
+
+    <!-- Insider tab content -->
+    <div class="tab-content active" data-tab-content="insider">
+    <!-- KPIs -->
+    <div class="kpis" id="kpis"></div>
+
+    <!-- Charts -->
+    <div class="chart-grid">
+      <div class="card">
+        <div class="card-head">
+          <h3>Buy vs Sell — daily volume (₹)</h3>
+          <div class="scale-toggle" id="timelineScale" title="A few outlier days flatten the rest. Switch to Log (sign-preserving) or Clip to make smaller bars readable.">
+            <span class="seg active" data-scale="linear">Linear</span>
+            <span class="seg" data-scale="log">Log</span>
+            <span class="seg" data-scale="clip">Clip</span>
+          </div>
+        </div>
+        <div class="chart-container"><canvas id="timelineChart"></canvas></div>
+        <div class="clip-note" id="timelineNote"></div>
+      </div>
+      <div class="card">
+        <h3>Transaction split</h3>
+        <div class="chart-container small"><canvas id="bucketChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="chart-row">
+      <div class="card">
+        <h3>Top 10 symbols — by trade value</h3>
+        <div class="chart-container"><canvas id="topSymbolsChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Top 10 buyers (net)</h3>
+        <div class="chart-container"><canvas id="topBuyersChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>By person category</h3>
+        <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card table-card">
+      <div class="table-toolbar">
+        <div class="count" id="tableCount">—</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:12px;color:var(--text-muted)">Rows per page</span>
+          <select id="pageSize" style="width:auto">
+            <option>25</option>
+            <option selected>50</option>
+            <option>100</option>
+            <option>250</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="dataTable">
+          <thead>
+            <tr>
+              <th data-sort="broadcast_date">Date</th>
+              <th data-sort="symbol">Symbol</th>
+              <th data-sort="company">Company</th>
+              <th data-sort="acquirer_name">Acquirer</th>
+              <th data-sort="person_category">Category</th>
+              <th data-sort="transaction_type">Type</th>
+              <th data-sort="mode_of_acquisition" title="Mode of acquisition / disposal">Acq. Mode</th>
+              <th data-sort="qty_num" class="num-cell">Shares</th>
+              <th data-sort="value_num" class="num-cell">Value (₹)</th>
+              <th data-sort="after_shares_pct_num" class="num-cell">Post %</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pagination"></div>
+    </div>
+    </div><!-- /insider tab -->
+
+    <!-- Preferential Issues tab content -->
+    <div class="tab-content" data-tab-content="pref">
+      <div class="kpis" id="prefKpis"></div>
+
+      <div class="chart-grid">
+        <div class="card">
+          <h3>Top 15 issues by amount raised</h3>
+          <div class="chart-container"><canvas id="prefTopChart"></canvas></div>
+        </div>
+        <div class="card">
+          <h3>By stage</h3>
+          <div class="chart-container small"><canvas id="prefStageChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card table-card">
+        <div class="table-toolbar">
+          <div class="count" id="prefTableCount">—</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;color:var(--text-muted)">Rows per page</span>
+            <select id="prefPageSize" style="width:auto">
+              <option>25</option>
+              <option selected>50</option>
+              <option>100</option>
+              <option>250</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="prefTable">
+            <thead>
+              <tr>
+                <th data-sort="board_res_date">Date</th>
+                <th data-sort="stage">Stage</th>
+                <th data-sort="symbol">Symbol</th>
+                <th data-sort="company">Company</th>
+                <th data-sort="allottee_category">Allottee / Description</th>
+                <th data-sort="amount_raised_num" class="num-cell">Amount (₹)</th>
+                <th data-sort="offer_price_num" class="num-cell">Offer Price</th>
+                <th data-sort="shares_allotted_num" class="num-cell">Shares</th>
+                <th data-sort="allotment_date">Allotment</th>
+                <th data-sort="listing_date">Listing</th>
+              </tr>
+            </thead>
+            <tbody id="prefTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="prefPagination"></div>
+      </div>
+    </div><!-- /pref tab -->
+  </main>
+</div>
+
+<script>
+// ---------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------
+const state = {
+  rows: [],
+  filtered: [],
+  page: 1,
+  pageSize: 50,
+  sort: { key: 'broadcast_date', dir: 'desc' },
+  filters: {
+    search: '',
+    dateFrom: '',
+    dateTo: '',
+    buckets: new Set(),
+    categories: new Set(),
+    modes: new Set(),
+    symbols: new Set(),
+    symbolSearch: '',
+    minValue: null,
+  },
+  charts: {},
+  expandedRowId: null,
+  timelineScale: (JSON.parse(localStorage.getItem('insiderDashV1') || '{}').timelineScale) || 'linear',
+};
+
+const persisted = JSON.parse(localStorage.getItem('insiderDashV1') || '{}');
+if (persisted.theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+
+// ---------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------
+const fmtInt = n => (n === null || n === undefined || isNaN(n)) ? '' : n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+const fmtCr = n => {
+  if (n === null || n === undefined || isNaN(n)) return '';
+  if (Math.abs(n) >= 1e7) return '₹' + (n / 1e7).toLocaleString('en-IN', { maximumFractionDigits: 2 }) + ' Cr';
+  if (Math.abs(n) >= 1e5) return '₹' + (n / 1e5).toLocaleString('en-IN', { maximumFractionDigits: 2 }) + ' L';
+  return '₹' + n.toLocaleString('en-IN', { maximumFractionDigits: 0 });
+};
+const fmtPct = n => (n === null || n === undefined || isNaN(n)) ? '' : (Number(n).toFixed(2) + '%');
+
+function parseDate(s) {
+  if (!s) return null;
+  // try DD-Mon-YYYY, DD-MM-YYYY, YYYY-MM-DD
+  const m1 = /^(\d{2})-(\d{2})-(\d{4})$/.exec(s);
+  if (m1) return new Date(+m1[3], +m1[2] - 1, +m1[1]);
+  const m2 = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m2) return new Date(+m2[1], +m2[2] - 1, +m2[3]);
+  const m3 = /^(\d{2})-([A-Za-z]{3})-(\d{4})/.exec(s);
+  if (m3) {
+    const months = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+    return new Date(+m3[3], months[m3[2].toLowerCase()] ?? 0, +m3[1]);
+  }
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+function isoDay(s) {
+  const d = parseDate(s);
+  if (!d) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+function getCssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+// ---------------------------------------------------------------------
+// Data loading
+// ---------------------------------------------------------------------
+async function loadData() {
+  document.getElementById('subtitle').textContent = 'Loading data…';
+  try {
+    const r = await fetch('data/insider_trading_data.json?t=' + Date.now());
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    state.rows = (j.rows || []).map(row => ({ ...row, _dayIso: isoDay(row.broadcast_date || row.intimation_date) }));
+    document.getElementById('subtitle').textContent =
+      `${state.rows.length.toLocaleString()} filings • generated ${j.generated_at || '—'}`;
+    buildFilterOptions();
+    applyFilters();
+  } catch (e) {
+    document.getElementById('subtitle').textContent = 'No data yet — run fetch_insider.py';
+    document.getElementById('tableBody').innerHTML =
+      '<tr><td colspan="10"><div class="empty"><h3>No data loaded</h3>' +
+      '<p>Run <code>run_historical.bat</code> to do the initial 6-month backfill, ' +
+      'then <code>run_dashboard.bat</code>.</p></div></td></tr>';
+  }
+}
+
+// ---------------------------------------------------------------------
+// Filter UI
+// ---------------------------------------------------------------------
+function buildFilterOptions() {
+  const cats = new Map();
+  const modes = new Map();
+  const syms = new Map();
+  for (const r of state.rows) {
+    if (r.person_category) cats.set(r.person_category, (cats.get(r.person_category) || 0) + 1);
+    if (r.mode_of_acquisition) modes.set(r.mode_of_acquisition, (modes.get(r.mode_of_acquisition) || 0) + 1);
+    if (r.symbol) syms.set(r.symbol, (syms.get(r.symbol) || 0) + 1);
+  }
+  renderMulti('categoryFilter', cats, state.filters.categories);
+  renderMulti('modeFilter', modes, state.filters.modes);
+  renderMulti('symbolFilter', syms, state.filters.symbols);
+}
+function renderMulti(id, counts, selectedSet) {
+  const el = document.getElementById(id);
+  const search = id === 'symbolFilter' ? state.filters.symbolSearch.toLowerCase() : '';
+  const items = [...counts.entries()]
+    .filter(([k]) => !search || k.toLowerCase().includes(search))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 200);
+  el.innerHTML = items.map(([k, c]) =>
+    `<label class="multi-option"><input type="checkbox" value="${escapeAttr(k)}" ${selectedSet.has(k) ? 'checked' : ''}>` +
+    `<span>${escapeHtml(k)}</span><span class="badge-mute" style="margin-left:auto;font-size:11px">${c}</span></label>`
+  ).join('');
+  const isPref = id.startsWith('pref');
+  el.querySelectorAll('input').forEach(input => {
+    input.onchange = () => {
+      if (input.checked) selectedSet.add(input.value); else selectedSet.delete(input.value);
+      if (isPref) { prefState.page = 1; applyPrefFilters(); }
+      else { state.page = 1; applyFilters(); }
+    };
+  });
+}
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function escapeAttr(s) { return escapeHtml(s); }
+
+// Map a free-text mode_of_acquisition value to a CSS class for colouring.
+// Substring matching keeps it robust against minor wording variations.
+function modeClass(mode) {
+  if (!mode) return '';
+  const m = mode.toLowerCase();
+  if (m.includes('market') && (m.includes('purchase') || m.includes('buy'))) return 'mode-buy';
+  if (m.includes('market') && (m.includes('sale') || m.includes('sell')))   return 'mode-sell';
+  if (m.includes('pledge'))                                                  return 'mode-pledge';
+  if (m.includes('esop') || m.includes('employee stock'))                    return 'mode-esop';
+  if (m.includes('off market') || m.includes('off-market'))                  return 'mode-offmarket';
+  if (m.includes('gift'))                                                    return 'mode-gift';
+  if (m.includes('inter-se') || m.includes('inter se') || m.includes('transfer')) return 'mode-transfer';
+  if (m.includes('allot'))                                                   return 'mode-allotment';
+  if (m.includes('exercise') || m.includes('conversion'))                    return 'mode-exercise';
+  if (m.includes('right'))                                                   return 'mode-rights';
+  return 'mode-other';
+}
+
+// ---------------------------------------------------------------------
+// Filtering / sorting / pagination
+// ---------------------------------------------------------------------
+function applyFilters() {
+  const f = state.filters;
+  const search = f.search.toLowerCase();
+  const minV = f.minValue;
+  const dFrom = f.dateFrom ? new Date(f.dateFrom) : null;
+  const dTo = f.dateTo ? new Date(f.dateTo + 'T23:59:59') : null;
+
+  state.filtered = state.rows.filter(r => {
+    if (search) {
+      const hay = `${r.symbol || ''} ${r.company || ''} ${r.acquirer_name || ''} ${r.detail_acquirer || ''}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (f.buckets.size && !f.buckets.has(r.bucket)) return false;
+    if (f.categories.size && !f.categories.has(r.person_category)) return false;
+    if (f.modes.size && !f.modes.has(r.mode_of_acquisition)) return false;
+    if (f.symbols.size && !f.symbols.has(r.symbol)) return false;
+    if (minV && (!r.value_num || r.value_num < minV)) return false;
+    if (dFrom || dTo) {
+      const d = parseDate(r.broadcast_date || r.intimation_date);
+      if (!d) return false;
+      if (dFrom && d < dFrom) return false;
+      if (dTo && d > dTo) return false;
+    }
+    return true;
+  });
+
+  sortFiltered();
+  render();
+  renderCharts();
+}
+
+function sortFiltered() {
+  const { key, dir } = state.sort;
+  const mul = dir === 'asc' ? 1 : -1;
+  state.filtered.sort((a, b) => {
+    let av = a[key], bv = b[key];
+    if (key === 'broadcast_date' || key === 'intimation_date') {
+      av = parseDate(a[key])?.getTime() || 0;
+      bv = parseDate(b[key])?.getTime() || 0;
+    }
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    if (av === undefined || av === null || av === '') return 1;
+    if (bv === undefined || bv === null || bv === '') return -1;
+    if (av < bv) return -1 * mul;
+    if (av > bv) return 1 * mul;
+    return 0;
+  });
+}
+
+function render() {
+  renderKpis();
+  renderTable();
+}
+
+function renderKpis() {
+  const rows = state.filtered;
+  let buyVal = 0, sellVal = 0, buyCount = 0, sellCount = 0;
+  const symbols = new Set();
+  let minDate = null, maxDate = null;
+  for (const r of rows) {
+    symbols.add(r.symbol);
+    if (r.bucket === 'Buy')  { buyVal  += r.value_num || 0; buyCount++; }
+    if (r.bucket === 'Sell') { sellVal += r.value_num || 0; sellCount++; }
+    const d = parseDate(r.broadcast_date || r.intimation_date);
+    if (d) {
+      if (!minDate || d < minDate) minDate = d;
+      if (!maxDate || d > maxDate) maxDate = d;
+    }
+  }
+  const net = buyVal - sellVal;
+  const fmtRange = () => minDate && maxDate
+    ? `${minDate.toLocaleDateString('en-GB')} → ${maxDate.toLocaleDateString('en-GB')}`
+    : '—';
+
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="label">Filings</div><div class="value">${fmtInt(rows.length)}</div><div class="delta">${symbols.size} unique symbols</div></div>
+    <div class="kpi buy"><div class="label">Buy value</div><div class="value">${fmtCr(buyVal)}</div><div class="delta">${fmtInt(buyCount)} filings</div></div>
+    <div class="kpi sell"><div class="label">Sell value</div><div class="value">${fmtCr(sellVal)}</div><div class="delta">${fmtInt(sellCount)} filings</div></div>
+    <div class="kpi net"><div class="label">Net (buy − sell)</div><div class="value ${net >= 0 ? 'pos' : 'neg'}">${fmtCr(net)}</div><div class="delta">${net >= 0 ? 'Net buying' : 'Net selling'}</div></div>
+    <div class="kpi"><div class="label">Date range</div><div class="value" style="font-size:14px">${fmtRange()}</div></div>
+  `;
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const start = (state.page - 1) * state.pageSize;
+  const slice = state.filtered.slice(start, start + state.pageSize);
+  document.getElementById('tableCount').textContent =
+    `${fmtInt(state.filtered.length)} matching filings  •  showing ${fmtInt(slice.length)}`;
+
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="10"><div class="empty"><h3>No matches</h3><p>Adjust filters to see results.</p></div></td></tr>';
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = slice.map(r => `
+    <tr data-id="${r.id}" class="${state.expandedRowId === r.id ? 'expanded' : ''}">
+      <td>${escapeHtml(r.broadcast_date || r.intimation_date || '')}</td>
+      <td><span class="symbol-cell" data-symbol="${escapeAttr(r.symbol || '')}">${escapeHtml(r.symbol || '')}</span></td>
+      <td>${escapeHtml(r.company || '')}</td>
+      <td>${escapeHtml(r.acquirer_name || r.detail_acquirer || '')}</td>
+      <td>${escapeHtml(r.person_category || '')}</td>
+      <td><span class="bucket-pill ${r.bucket || 'Other'}">${escapeHtml(r.transaction_type || r.bucket || 'Other')}</span></td>
+      <td>${r.mode_of_acquisition ? `<span class="mode-pill ${modeClass(r.mode_of_acquisition)}">${escapeHtml(r.mode_of_acquisition)}</span>` : ''}</td>
+      <td class="num-cell">${fmtInt(r.qty_num)}</td>
+      <td class="num-cell ${r.bucket === 'Sell' ? 'sell' : 'buy'}">${fmtCr(r.value_num)}</td>
+      <td class="num-cell">${fmtPct(r.after_shares_pct_num ?? r.after_shares_pct)}</td>
+    </tr>
+    ${state.expandedRowId === r.id ? renderDetailPane(r) : ''}
+  `).join('');
+
+  // Sort indicators
+  document.querySelectorAll('thead th').forEach(th => {
+    const k = th.dataset.sort;
+    th.innerHTML = th.innerHTML.replace(/ ?[▲▼]$/, '');
+    if (k === state.sort.key) th.innerHTML += ' ' + (state.sort.dir === 'asc' ? '▲' : '▼');
+  });
+
+  // Row + symbol clicks
+  tbody.querySelectorAll('tr[data-id]').forEach(tr => {
+    tr.addEventListener('click', e => {
+      if (e.target.classList.contains('symbol-cell')) {
+        const sym = e.target.dataset.symbol;
+        state.filters.symbols = new Set([sym]);
+        buildFilterOptions();
+        state.page = 1;
+        applyFilters();
+        return;
+      }
+      const id = tr.dataset.id;
+      state.expandedRowId = state.expandedRowId === id ? null : id;
+      renderTable();
+    });
+  });
+
+  renderPagination();
+}
+
+function renderDetailPane(r) {
+  const fields = [];
+  const top = [
+    ['Symbol', r.symbol], ['Company', r.company],
+    ['Acquirer / Disposer', r.acquirer_name || r.detail_acquirer],
+    ['Person category', r.person_category],
+    ['Transaction', r.transaction_type],
+    ['Mode of acquisition', r.mode_of_acquisition || r.detail_mode],
+    ['Security type', r.security_type],
+    ['Shares traded', fmtInt(r.qty_num)],
+    ['Trade value', fmtCr(r.value_num)],
+    ['Before shares', `${fmtInt(r.before_shares_no)} (${fmtPct(r.before_shares_pct_num ?? r.before_shares_pct)})`],
+    ['After shares', `${fmtInt(r.after_shares_no)} (${fmtPct(r.after_shares_pct_num ?? r.after_shares_pct)})`],
+    ['Acq. from', r.acq_from_date], ['Acq. to', r.acq_to_date],
+    ['Intimation date', r.intimation_date], ['Broadcast date', r.broadcast_date],
+    ['Remarks', r.remarks],
+  ];
+  for (const [k, v] of top) if (v) fields.push(`<div class="field"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>`);
+
+  // Extended XBRL details (anything else from the Details page)
+  const seen = new Set(top.map(t => t[0].toLowerCase()));
+  if (r.details && typeof r.details === 'object') {
+    for (const [k, v] of Object.entries(r.details)) {
+      if (!v || seen.has(k.toLowerCase())) continue;
+      fields.push(`<div class="field"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>`);
+    }
+  }
+
+  return `<tr class="detail-row"><td colspan="10"><div class="detail-pane">
+    <div class="detail-grid">${fields.join('')}</div>
+    <div class="detail-actions">
+      ${r.details_link ? `<a href="${escapeAttr(r.details_link)}" target="_blank">Open NSE Details page ↗</a>` : ''}
+      ${r.symbol ? `<a href="https://www.nseindia.com/get-quotes/equity?symbol=${escapeAttr(r.symbol)}" target="_blank">Open NSE quote ↗</a>` : ''}
+      ${r.symbol ? `<a href="https://www.google.com/finance/quote/${escapeAttr(r.symbol)}:NSE" target="_blank">Google Finance ↗</a>` : ''}
+    </div>
+  </div></td></tr>`;
+}
+
+function renderPagination() {
+  const total = state.filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+  state.page = Math.min(state.page, totalPages);
+  const p = state.page;
+  const make = (label, target, disabled = false, active = false) =>
+    `<button ${disabled ? 'disabled style="opacity:.4;cursor:default"' : ''} ${active ? 'class="primary"' : ''} data-page="${target}">${label}</button>`;
+
+  const buttons = [];
+  buttons.push(make('« First', 1, p === 1));
+  buttons.push(make('‹ Prev', Math.max(1, p - 1), p === 1));
+  const radius = 2;
+  const start = Math.max(1, p - radius);
+  const end = Math.min(totalPages, p + radius);
+  for (let i = start; i <= end; i++) buttons.push(make(i, i, false, i === p));
+  buttons.push(make('Next ›', Math.min(totalPages, p + 1), p === totalPages));
+  buttons.push(make('Last »', totalPages, p === totalPages));
+
+  document.getElementById('pagination').innerHTML =
+    buttons.join('') + `<span class="info">Page ${p} / ${totalPages}</span>`;
+  document.querySelectorAll('#pagination button').forEach(b => {
+    b.onclick = () => { state.page = +b.dataset.page; render(); };
+  });
+}
+
+// ---------------------------------------------------------------------
+// Charts
+// ---------------------------------------------------------------------
+function renderCharts() {
+  const rows = state.filtered;
+
+  // Timeline: aggregate buy/sell by day
+  const dayMap = new Map();
+  for (const r of rows) {
+    if (!r._dayIso) continue;
+    if (!dayMap.has(r._dayIso)) dayMap.set(r._dayIso, { buy: 0, sell: 0 });
+    const bucket = dayMap.get(r._dayIso);
+    if (r.bucket === 'Buy')  bucket.buy  += r.value_num || 0;
+    if (r.bucket === 'Sell') bucket.sell += r.value_num || 0;
+  }
+  const days = [...dayMap.keys()].sort();
+  const buyRaw  = days.map(d => dayMap.get(d).buy);
+  const sellRaw = days.map(d => -dayMap.get(d).sell);
+
+  // --- Scale handling: linear / log (symmetric) / clip --------------------
+  // symlog keeps the sign so Buy stays positive and Sell stays negative,
+  // but compresses huge values (each integer unit ≈ one order of magnitude
+  // of Crores). clip caps the Y-axis at the 95th percentile so outliers
+  // sit off-scale but the everyday bars become readable.
+  const ONE_CR = 1e7;
+  const symlog = x => x === 0 ? 0 : Math.sign(x) * Math.log10(1 + Math.abs(x) / ONE_CR);
+  const symexp = y => y === 0 ? 0 : Math.sign(y) * ONE_CR * (Math.pow(10, Math.abs(y)) - 1);
+
+  let buyData = buyRaw, sellData = sellRaw;
+  let yMin, yMax, tickCallback, tooltipLabel, noteText = '';
+  const scale = state.timelineScale;
+
+  if (scale === 'log') {
+    buyData  = buyRaw.map(symlog);
+    sellData = sellRaw.map(symlog);
+    tickCallback = v => fmtCr(symexp(v));
+    tooltipLabel = ctx => `${ctx.dataset.label}: ${fmtCr(Math.abs(symexp(ctx.raw)))}`;
+    noteText = 'Symmetric-log scale — each gridline ≈ 10× the previous. Restores visibility of smaller days.';
+  } else if (scale === 'clip') {
+    // Cap at the 95th percentile of |daily totals|.
+    const all = [...buyRaw, ...sellRaw.map(Math.abs)].filter(Boolean).sort((a, b) => a - b);
+    const cap = all.length ? all[Math.floor(all.length * 0.95)] : 0;
+    let clipped = 0;
+    buyData  = buyRaw.map(v => { if (v > cap) clipped++; return Math.min(v, cap); });
+    sellData = sellRaw.map(v => { if (-v > cap) clipped++; return Math.max(v, -cap); });
+    yMin = -cap * 1.05; yMax = cap * 1.05;
+    tickCallback = v => fmtCr(v);
+    tooltipLabel = ctx => {
+      const i = ctx.dataIndex;
+      const trueVal = ctx.dataset.label === 'Buy' ? buyRaw[i] : Math.abs(sellRaw[i]);
+      const wasClipped = Math.abs(ctx.dataset.label === 'Buy' ? buyRaw[i] : sellRaw[i]) > cap;
+      return `${ctx.dataset.label}: ${fmtCr(trueVal)}${wasClipped ? '  (off-scale)' : ''}`;
+    };
+    noteText = clipped
+      ? `${clipped} bar(s) clipped at ${fmtCr(cap)} — hover any bar for the true value.`
+      : `Y-axis capped at the 95th percentile (${fmtCr(cap)}).`;
+  } else {
+    tickCallback = v => fmtCr(v);
+    tooltipLabel = ctx => `${ctx.dataset.label}: ${fmtCr(Math.abs(ctx.raw))}`;
+    const maxAbs = Math.max(...buyRaw.map(Math.abs), ...sellRaw.map(Math.abs));
+    const maxOther = [...buyRaw, ...sellRaw.map(Math.abs)].filter(Boolean).sort((a, b) => b - a)[3] || 0;
+    if (maxOther && maxAbs > maxOther * 5) {
+      noteText = 'A few large bars dominate. Try Log or Clip for better visibility.';
+    }
+  }
+  const noteEl = document.getElementById('timelineNote');
+  if (noteEl) noteEl.textContent = noteText;
+
+  upsertChart('timelineChart', 'bar', {
+    labels: days,
+    datasets: [
+      { label: 'Buy',  data: buyData,  backgroundColor: getCssVar('--buy')  },
+      { label: 'Sell', data: sellData, backgroundColor: getCssVar('--sell') },
+    ],
+  }, {
+    scales: {
+      x: { stacked: true, ticks: { color: getCssVar('--text-muted'), maxRotation: 0, autoSkip: true }, grid: { color: getCssVar('--border') } },
+      y: { stacked: true, min: yMin, max: yMax,
+           ticks: { color: getCssVar('--text-muted'), callback: tickCallback },
+           grid: { color: getCssVar('--border') } },
+    },
+    plugins: {
+      legend: { labels: { color: getCssVar('--text') } },
+      tooltip: { callbacks: { label: tooltipLabel } },
+    },
+  });
+
+  // Bucket donut
+  const bucketCounts = { Buy: 0, Sell: 0, Other: 0 };
+  for (const r of rows) bucketCounts[r.bucket || 'Other'] = (bucketCounts[r.bucket || 'Other'] || 0) + 1;
+  upsertChart('bucketChart', 'doughnut', {
+    labels: Object.keys(bucketCounts),
+    datasets: [{ data: Object.values(bucketCounts), backgroundColor: [getCssVar('--buy'), getCssVar('--sell'), getCssVar('--other')] }],
+  }, { plugins: { legend: { position: 'bottom', labels: { color: getCssVar('--text') } } } });
+
+  // Top symbols by trade value
+  const symVal = new Map();
+  for (const r of rows) {
+    if (!r.symbol || !r.value_num) continue;
+    symVal.set(r.symbol, (symVal.get(r.symbol) || 0) + r.value_num);
+  }
+  const topSyms = [...symVal.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  upsertChart('topSymbolsChart', 'bar', {
+    labels: topSyms.map(s => s[0]),
+    datasets: [{ label: 'Total traded value', data: topSyms.map(s => s[1]), backgroundColor: getCssVar('--primary') }],
+  }, {
+    indexAxis: 'y',
+    scales: {
+      x: { ticks: { color: getCssVar('--text-muted'), callback: v => fmtCr(v) }, grid: { color: getCssVar('--border') } },
+      y: { ticks: { color: getCssVar('--text-muted') }, grid: { display: false } },
+    },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmtCr(ctx.raw) } } },
+  });
+
+  // Net buyers (buy value - sell value)
+  const symNet = new Map();
+  for (const r of rows) {
+    if (!r.symbol) continue;
+    const cur = symNet.get(r.symbol) || 0;
+    const delta = (r.bucket === 'Buy' ? 1 : r.bucket === 'Sell' ? -1 : 0) * (r.value_num || 0);
+    symNet.set(r.symbol, cur + delta);
+  }
+  const topNet = [...symNet.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  upsertChart('topBuyersChart', 'bar', {
+    labels: topNet.map(s => s[0]),
+    datasets: [{
+      label: 'Net buy value',
+      data: topNet.map(s => s[1]),
+      backgroundColor: topNet.map(s => s[1] >= 0 ? getCssVar('--buy') : getCssVar('--sell')),
+    }],
+  }, {
+    indexAxis: 'y',
+    scales: {
+      x: { ticks: { color: getCssVar('--text-muted'), callback: v => fmtCr(v) }, grid: { color: getCssVar('--border') } },
+      y: { ticks: { color: getCssVar('--text-muted') }, grid: { display: false } },
+    },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmtCr(ctx.raw) } } },
+  });
+
+  // Person category
+  const catCounts = new Map();
+  for (const r of rows) {
+    if (!r.person_category) continue;
+    catCounts.set(r.person_category, (catCounts.get(r.person_category) || 0) + 1);
+  }
+  const cats = [...catCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const colors = ['#4f46e5', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
+  upsertChart('categoryChart', 'doughnut', {
+    labels: cats.map(c => c[0]),
+    datasets: [{ data: cats.map(c => c[1]), backgroundColor: colors }],
+  }, { plugins: { legend: { position: 'bottom', labels: { color: getCssVar('--text'), font: { size: 11 } } } } });
+}
+
+function upsertChart(canvasId, type, data, options = {}) {
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  if (state.charts[canvasId]) { state.charts[canvasId].destroy(); }
+  state.charts[canvasId] = new Chart(ctx, {
+    type,
+    data,
+    options: { responsive: true, maintainAspectRatio: false, ...options },
+  });
+}
+
+// ---------------------------------------------------------------------
+// Event wiring
+// ---------------------------------------------------------------------
+document.getElementById('search').addEventListener('input', e => {
+  state.filters.search = e.target.value; state.page = 1; applyFilters();
+});
+document.getElementById('dateFrom').addEventListener('change', e => { state.filters.dateFrom = e.target.value; state.page = 1; applyFilters(); });
+document.getElementById('dateTo').addEventListener('change', e => { state.filters.dateTo = e.target.value; state.page = 1; applyFilters(); });
+document.getElementById('minValue').addEventListener('input', e => {
+  state.filters.minValue = e.target.value ? +e.target.value : null; state.page = 1; applyFilters();
+});
+document.getElementById('symbolFilterSearch').addEventListener('input', e => {
+  state.filters.symbolSearch = e.target.value; buildFilterOptions();
+});
+document.getElementById('bucketChips').addEventListener('click', e => {
+  if (!e.target.classList.contains('chip')) return;
+  const b = e.target.dataset.bucket;
+  if (state.filters.buckets.has(b)) { state.filters.buckets.delete(b); e.target.classList.remove('active'); }
+  else { state.filters.buckets.add(b); e.target.classList.add('active'); }
+  state.page = 1; applyFilters();
+});
+document.querySelectorAll('[data-quick]').forEach(c => c.addEventListener('click', () => {
+  const v = c.dataset.quick;
+  if (v === 'all') { state.filters.dateFrom = ''; state.filters.dateTo = ''; }
+  else {
+    const to = new Date();
+    const from = new Date(); from.setDate(from.getDate() - +v);
+    state.filters.dateFrom = from.toISOString().slice(0, 10);
+    state.filters.dateTo = to.toISOString().slice(0, 10);
+  }
+  document.getElementById('dateFrom').value = state.filters.dateFrom;
+  document.getElementById('dateTo').value = state.filters.dateTo;
+  state.page = 1; applyFilters();
+}));
+document.querySelectorAll('[data-reset]').forEach(el => el.addEventListener('click', () => {
+  const k = el.dataset.reset;
+  if (k === 'date') { state.filters.dateFrom = ''; state.filters.dateTo = ''; document.getElementById('dateFrom').value = ''; document.getElementById('dateTo').value = ''; }
+  if (k === 'bucket') { state.filters.buckets.clear(); document.querySelectorAll('#bucketChips .chip').forEach(c => c.classList.remove('active')); }
+  if (k === 'category') { state.filters.categories.clear(); buildFilterOptions(); }
+  if (k === 'mode') { state.filters.modes.clear(); buildFilterOptions(); }
+  if (k === 'symbol') { state.filters.symbols.clear(); buildFilterOptions(); }
+  if (k === 'value') { state.filters.minValue = null; document.getElementById('minValue').value = ''; }
+  state.page = 1; applyFilters();
+}));
+document.getElementById('resetAll').onclick = () => {
+  state.filters = { search: '', dateFrom: '', dateTo: '', buckets: new Set(), categories: new Set(), modes: new Set(), symbols: new Set(), symbolSearch: '', minValue: null };
+  document.querySelectorAll('input').forEach(i => { if (i.type !== 'checkbox') i.value = ''; });
+  document.querySelectorAll('#bucketChips .chip').forEach(c => c.classList.remove('active'));
+  buildFilterOptions(); state.page = 1; applyFilters();
+};
+document.getElementById('pageSize').addEventListener('change', e => { state.pageSize = +e.target.value; state.page = 1; render(); });
+document.querySelectorAll('thead th[data-sort]').forEach(th => th.addEventListener('click', () => {
+  const k = th.dataset.sort;
+  if (state.sort.key === k) state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+  else { state.sort.key = k; state.sort.dir = 'desc'; }
+  sortFiltered(); render();
+}));
+document.getElementById('timelineScale').addEventListener('click', e => {
+  const seg = e.target.closest('.seg');
+  if (!seg) return;
+  state.timelineScale = seg.dataset.scale;
+  document.querySelectorAll('#timelineScale .seg').forEach(s => s.classList.toggle('active', s === seg));
+  const persisted = JSON.parse(localStorage.getItem('insiderDashV1') || '{}');
+  persisted.timelineScale = state.timelineScale;
+  localStorage.setItem('insiderDashV1', JSON.stringify(persisted));
+  renderCharts();
+});
+// reflect the persisted choice on load
+document.querySelectorAll('#timelineScale .seg').forEach(s => {
+  s.classList.toggle('active', s.dataset.scale === state.timelineScale);
+});
+document.getElementById('reload').onclick = loadData;
+document.getElementById('themeToggle').onclick = () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? null : 'dark';
+  if (next) document.documentElement.setAttribute('data-theme', next);
+  else document.documentElement.removeAttribute('data-theme');
+  localStorage.setItem('insiderDashV1', JSON.stringify({ theme: next }));
+  document.getElementById('themeToggle').textContent = next ? '☀ Light' : '🌙 Dark';
+  renderCharts();
+};
+document.getElementById('themeToggle').textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀ Light' : '🌙 Dark';
+
+document.getElementById('exportCsv').onclick = () => {
+  const rows = state.filtered;
+  if (!rows.length) return alert('Nothing to export.');
+  const cols = ['broadcast_date', 'intimation_date', 'symbol', 'company', 'acquirer_name', 'person_category',
+                'bucket', 'transaction_type', 'mode_of_acquisition', 'security_type',
+                'qty_num', 'value_num', 'before_shares_no', 'before_shares_pct',
+                'after_shares_no', 'after_shares_pct', 'remarks', 'details_link'];
+  const header = cols.join(',');
+  const escape = v => {
+    if (v === null || v === undefined) return '';
+    const s = String(v).replace(/"/g, '""');
+    return /[",\n]/.test(s) ? `"${s}"` : s;
+  };
+  const csv = [header, ...rows.map(r => cols.map(c => escape(r[c])).join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `insider_trading_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+};
+
+// =====================================================================
+// PREFERENTIAL ISSUES TAB
+// =====================================================================
+const prefState = {
+  rows: [],
+  filtered: [],
+  page: 1,
+  pageSize: 50,
+  sort: { key: 'board_res_date', dir: 'desc' },
+  filters: {
+    search: '',
+    dateFrom: '',
+    dateTo: '',
+    stages: new Set(),
+    allottees: new Set(),
+    symbols: new Set(),
+    minValue: null,
+  },
+  charts: {},
+  expandedRowId: null,
+  loaded: false,
+};
+
+function prefAllotteeClass(c) {
+  if (!c) return '';
+  const x = c.toLowerCase();
+  if (x.includes('promoter') && x.includes('non')) return 'cat-mixed';
+  if (x.includes('non promoter') || x.includes('non-promoter')) return 'cat-nonpromoter';
+  if (x.includes('promoter')) return 'cat-promoter';
+  return '';
+}
+
+async function loadPrefData() {
+  try {
+    const r = await fetch('data/preferential_data.json?t=' + Date.now());
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    prefState.rows = j.rows || [];
+    prefState.loaded = true;
+    document.getElementById('tabCountPref').textContent = prefState.rows.length;
+    buildPrefFilterOptions();
+    applyPrefFilters();
+  } catch (e) {
+    prefState.loaded = true;  // don't keep retrying
+    document.getElementById('prefTableBody').innerHTML =
+      '<tr><td colspan="10"><div class="empty"><h3>No preferential data yet</h3>' +
+      '<p>Run <code>run_preferential.bat</code> to fetch the data.</p></div></td></tr>';
+  }
+}
+
+function buildPrefFilterOptions() {
+  const cats = new Map();
+  for (const r of prefState.rows) {
+    if (r.allottee_category) cats.set(r.allottee_category, (cats.get(r.allottee_category) || 0) + 1);
+  }
+  renderMulti('prefAllotteeFilter', cats, prefState.filters.allottees);
+}
+
+function applyPrefFilters() {
+  // Shared filters (search, date range, symbols, minValue) are pulled from
+  // the same sidebar widgets the insider tab uses — state.filters owns them.
+  const f = prefState.filters;
+  const sf = state.filters;
+  const search = sf.search.toLowerCase();
+  const minV = sf.minValue;
+  const dFrom = sf.dateFrom ? new Date(sf.dateFrom) : null;
+  const dTo = sf.dateTo ? new Date(sf.dateTo + 'T23:59:59') : null;
+
+  prefState.filtered = prefState.rows.filter(r => {
+    if (search) {
+      const hay = `${r.symbol || ''} ${r.company || ''} ${r.allottee_name || ''} ${r.allottee_category || ''}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (f.stages.size && !f.stages.has(r.stage)) return false;
+    if (f.allottees.size && !f.allottees.has(r.allottee_category)) return false;
+    if (sf.symbols.size && !sf.symbols.has(r.symbol)) return false;
+    if (minV && (!r.amount_raised_num || r.amount_raised_num < minV)) return false;
+    if (dFrom || dTo) {
+      const d = parseDate(r.board_res_date || r.system_date || r.submission_date);
+      if (!d) return false;
+      if (dFrom && d < dFrom) return false;
+      if (dTo && d > dTo) return false;
+    }
+    return true;
+  });
+  sortPrefFiltered();
+  renderPref();
+}
+
+function sortPrefFiltered() {
+  const { key, dir } = prefState.sort;
+  const mul = dir === 'asc' ? 1 : -1;
+  prefState.filtered.sort((a, b) => {
+    let av = a[key], bv = b[key];
+    if (key.endsWith('_date')) {
+      av = parseDate(a[key])?.getTime() || 0;
+      bv = parseDate(b[key])?.getTime() || 0;
+    }
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    if (av == null || av === '') return 1;
+    if (bv == null || bv === '') return -1;
+    if (av < bv) return -1 * mul;
+    if (av > bv) return 1 * mul;
+    return 0;
+  });
+}
+
+function renderPref() {
+  renderPrefKpis();
+  renderPrefTable();
+  renderPrefCharts();
+}
+
+function renderPrefKpis() {
+  const rows = prefState.filtered;
+  let totalAmount = 0, annCount = 0, ipCount = 0, lsCount = 0;
+  const companies = new Set();
+  for (const r of rows) {
+    totalAmount += r.amount_raised_num || 0;
+    if (r.stage === 'Announcement') annCount++;
+    else if (r.stage === 'In-Principle') ipCount++;
+    else if (r.stage === 'Listing') lsCount++;
+    const id = r.symbol || r.company;
+    if (id) companies.add(id);
+  }
+  document.getElementById('prefKpis').innerHTML = `
+    <div class="kpi"><div class="label">Filings</div><div class="value">${fmtInt(rows.length)}</div><div class="delta">${companies.size} unique companies</div></div>
+    <div class="kpi"><div class="label">Total amount raised</div><div class="value">${fmtCr(totalAmount)}</div><div class="delta">across NSE filings</div></div>
+    <div class="kpi"><div class="label">Announcement</div><div class="value" style="color:#7c3aed">${fmtInt(annCount)}</div><div class="delta">BSE: earliest stage</div></div>
+    <div class="kpi"><div class="label">In-Principle</div><div class="value" style="color:#b45309">${fmtInt(ipCount)}</div><div class="delta">NSE: board-approved</div></div>
+    <div class="kpi"><div class="label">Listing</div><div class="value" style="color:#059669">${fmtInt(lsCount)}</div><div class="delta">NSE: allotted</div></div>
+  `;
+}
+
+function renderPrefTable() {
+  const tbody = document.getElementById('prefTableBody');
+  const start = (prefState.page - 1) * prefState.pageSize;
+  const slice = prefState.filtered.slice(start, start + prefState.pageSize);
+  document.getElementById('prefTableCount').textContent =
+    `${fmtInt(prefState.filtered.length)} matching filings  •  showing ${fmtInt(slice.length)}`;
+
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="10"><div class="empty"><h3>No matches</h3><p>Adjust filters or load data first.</p></div></td></tr>';
+    document.getElementById('prefPagination').innerHTML = '';
+    return;
+  }
+
+  const fmtPrice = v => (v == null || isNaN(v)) ? '' : '₹' + Number(v).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+
+  tbody.innerHTML = slice.map(r => `
+    <tr data-id="${r.id}" class="${prefState.expandedRowId === r.id ? 'expanded' : ''}">
+      <td>${escapeHtml(r.board_res_date || r.system_date || '')}</td>
+      <td><span class="stage-pill ${r.stage || ''}">${escapeHtml(r.stage || '')}</span></td>
+      <td><span class="symbol-cell" data-symbol="${escapeAttr(r.symbol || '')}">${escapeHtml(r.symbol || '')}</span></td>
+      <td>${escapeHtml(r.company || '')}</td>
+      <td>${r.allottee_category
+            ? `<span class="cat-pill ${prefAllotteeClass(r.allottee_category)}">${escapeHtml(r.allottee_category)}</span>`
+            : (r.announcement_description
+                ? `<span title="${escapeAttr(r.announcement_description)}" style="font-size:12px;color:var(--text-muted)">${escapeHtml(r.announcement_description.length > 90 ? r.announcement_description.slice(0, 90) + '…' : r.announcement_description)}</span>`
+                : '')}</td>
+      <td class="num-cell">${fmtCr(r.amount_raised_num)}</td>
+      <td class="num-cell">${fmtPrice(r.offer_price_num)}</td>
+      <td class="num-cell">${fmtInt(r.shares_allotted_num)}</td>
+      <td>${escapeHtml(r.allotment_date || '')}</td>
+      <td>${escapeHtml(r.listing_date || '')}</td>
+    </tr>
+    ${prefState.expandedRowId === r.id ? renderPrefDetailPane(r) : ''}
+  `).join('');
+
+  // Sort indicators
+  document.querySelectorAll('#prefTable thead th').forEach(th => {
+    const k = th.dataset.sort;
+    th.innerHTML = th.innerHTML.replace(/ ?[▲▼]$/, '');
+    if (k === prefState.sort.key) th.innerHTML += ' ' + (prefState.sort.dir === 'asc' ? '▲' : '▼');
+  });
+
+  // Click handlers
+  tbody.querySelectorAll('tr[data-id]').forEach(tr => {
+    tr.addEventListener('click', e => {
+      if (e.target.classList.contains('symbol-cell')) {
+        const sym = e.target.dataset.symbol;
+        state.filters.symbols = new Set([sym]);
+        buildFilterOptions();
+        prefState.page = 1;
+        applyPrefFilters();
+        return;
+      }
+      const id = tr.dataset.id;
+      prefState.expandedRowId = prefState.expandedRowId === id ? null : id;
+      renderPrefTable();
+    });
+  });
+
+  renderPrefPagination();
+}
+
+function renderPrefDetailPane(r) {
+  const fields = [];
+  const top = [
+    ['Symbol', r.symbol], ['Company', r.company], ['Stage', r.stage],
+    ['ISIN', r.isin], ['CIN', r.cin], ['Issue type', r.issue_type],
+    ['Board resolution date', r.board_resolution_date],
+    ['Latest board res. date', r.board_res_date],
+    ['Submission date', r.submission_date],
+    ['Allotment date', r.allotment_date],
+    ['Listing date', r.listing_date],
+    ['Trading approval date', r.trading_approval_date],
+    ['Allottee category', r.allottee_category],
+    ['Consideration', r.consideration_by],
+    ['Offer price (₹)', r.offer_price],
+    ['Shares allotted', fmtInt(r.shares_allotted_num)],
+    ['Amount raised', fmtCr(r.amount_raised_num)],
+    ['Total shares post listing', fmtInt(r.shares_listed_num)],
+  ];
+  for (const [k, v] of top) if (v) fields.push(`<div class="field"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>`);
+
+  const seen = new Set(top.map(t => t[0].toLowerCase()));
+  if (r.details && typeof r.details === 'object') {
+    for (const [k, v] of Object.entries(r.details)) {
+      if (!v || seen.has(k.toLowerCase())) continue;
+      fields.push(`<div class="field"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>`);
+    }
+  }
+
+  return `<tr class="detail-row"><td colspan="10"><div class="detail-pane">
+    <div class="detail-grid">${fields.join('')}</div>
+    <div class="detail-actions">
+      ${r.details_link ? `<a href="${escapeAttr(r.details_link)}" target="_blank">Open XBRL XML ↗</a>` : ''}
+      ${r.raw && r.raw.checklist_zip_file_name ? `<a href="${escapeAttr(r.raw.checklist_zip_file_name)}" target="_blank">Open Notice ZIP ↗</a>` : ''}
+      ${r.symbol ? `<a href="https://www.nseindia.com/get-quotes/equity?symbol=${escapeAttr(r.symbol)}" target="_blank">NSE quote ↗</a>` : ''}
+    </div>
+  </div></td></tr>`;
+}
+
+function renderPrefPagination() {
+  const total = prefState.filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / prefState.pageSize));
+  prefState.page = Math.min(prefState.page, totalPages);
+  const p = prefState.page;
+  const make = (label, target, disabled = false, active = false) =>
+    `<button ${disabled ? 'disabled style="opacity:.4;cursor:default"' : ''} ${active ? 'class="primary"' : ''} data-page="${target}">${label}</button>`;
+  const buttons = [
+    make('« First', 1, p === 1),
+    make('‹ Prev', Math.max(1, p - 1), p === 1),
+  ];
+  const start = Math.max(1, p - 2), end = Math.min(totalPages, p + 2);
+  for (let i = start; i <= end; i++) buttons.push(make(i, i, false, i === p));
+  buttons.push(make('Next ›', Math.min(totalPages, p + 1), p === totalPages));
+  buttons.push(make('Last »', totalPages, p === totalPages));
+  document.getElementById('prefPagination').innerHTML =
+    buttons.join('') + `<span class="info">Page ${p} / ${totalPages}</span>`;
+  document.querySelectorAll('#prefPagination button').forEach(b => {
+    b.onclick = () => { prefState.page = +b.dataset.page; renderPrefTable(); };
+  });
+}
+
+function renderPrefCharts() {
+  const rows = prefState.filtered;
+  // Top 15 by amount
+  const top = [...rows].filter(r => r.amount_raised_num)
+    .sort((a, b) => b.amount_raised_num - a.amount_raised_num).slice(0, 15);
+  upsertPrefChart('prefTopChart', 'bar', {
+    labels: top.map(r => `${r.symbol || '—'}  (${(r.stage || '')[0] || '?'})`),
+    datasets: [{
+      label: 'Amount raised',
+      data: top.map(r => r.amount_raised_num),
+      backgroundColor: top.map(r => r.stage === 'Listing' ? getCssVar('--buy') : getCssVar('--other')),
+    }],
+  }, {
+    indexAxis: 'y',
+    scales: {
+      x: { ticks: { color: getCssVar('--text-muted'), callback: v => fmtCr(v) }, grid: { color: getCssVar('--border') } },
+      y: { ticks: { color: getCssVar('--text-muted') }, grid: { display: false } },
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: {
+        title: ctx => top[ctx[0].dataIndex].company || '',
+        label: ctx => `${fmtCr(ctx.raw)}  (${top[ctx.dataIndex].stage})`,
+      } },
+    },
+  });
+
+  // Stage breakdown across all 3 stages
+  const annCount = rows.filter(r => r.stage === 'Announcement').length;
+  const ipCount  = rows.filter(r => r.stage === 'In-Principle').length;
+  const lsCount  = rows.filter(r => r.stage === 'Listing').length;
+  upsertPrefChart('prefStageChart', 'doughnut', {
+    labels: ['Announcement', 'In-Principle', 'Listing'],
+    datasets: [{ data: [annCount, ipCount, lsCount],
+                 backgroundColor: ['#8b5cf6', getCssVar('--other'), getCssVar('--buy')] }],
+  }, { plugins: { legend: { position: 'bottom', labels: { color: getCssVar('--text') } } } });
+}
+
+function upsertPrefChart(id, type, data, options = {}) {
+  const ctx = document.getElementById(id).getContext('2d');
+  if (prefState.charts[id]) prefState.charts[id].destroy();
+  prefState.charts[id] = new Chart(ctx, {
+    type, data,
+    options: { responsive: true, maintainAspectRatio: false, ...options },
+  });
+}
+
+// --- Tab switching -----------------------------------------------------
+function switchTab(name) {
+  document.body.setAttribute('data-active-tab', name);
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.dataset.tabContent === name));
+  if (name === 'pref') {
+    if (!prefState.loaded) loadPrefData();
+    else applyPrefFilters();
+  } else {
+    applyFilters();
+  }
+}
+document.body.setAttribute('data-active-tab', 'insider');
+document.getElementById('tabs').addEventListener('click', e => {
+  const tab = e.target.closest('.tab');
+  if (tab) switchTab(tab.dataset.tab);
+});
+
+// Reflect insider row count in its tab badge
+const _origLoad = loadData;
+loadData = async function() {
+  await _origLoad();
+  document.getElementById('tabCountInsider').textContent = state.rows.length;
+};
+
+// --- Pref-tab event wiring ---------------------------------------------
+document.getElementById('prefStageChips').addEventListener('click', e => {
+  if (!e.target.classList.contains('chip')) return;
+  const s = e.target.dataset.stage;
+  if (prefState.filters.stages.has(s)) { prefState.filters.stages.delete(s); e.target.classList.remove('active'); }
+  else { prefState.filters.stages.add(s); e.target.classList.add('active'); }
+  prefState.page = 1; applyPrefFilters();
+});
+document.getElementById('prefPageSize').addEventListener('change', e => {
+  prefState.pageSize = +e.target.value; prefState.page = 1; renderPrefTable();
+});
+document.querySelectorAll('#prefTable thead th[data-sort]').forEach(th => th.addEventListener('click', () => {
+  const k = th.dataset.sort;
+  if (prefState.sort.key === k) prefState.sort.dir = prefState.sort.dir === 'asc' ? 'desc' : 'asc';
+  else { prefState.sort.key = k; prefState.sort.dir = 'desc'; }
+  sortPrefFiltered(); renderPrefTable();
+}));
+
+// Two extra "reset" buttons (Stage, Allottee) that piggy-back on the existing
+// data-reset handler in the original sidebar wiring need their own logic:
+document.querySelectorAll('[data-reset]').forEach(el => {
+  // We don't replace existing handlers — just attach our own for the pref-only resets.
+  if (el.dataset.reset === 'prefStage' || el.dataset.reset === 'prefAllottee') {
+    el.addEventListener('click', () => {
+      if (el.dataset.reset === 'prefStage') {
+        prefState.filters.stages.clear();
+        document.querySelectorAll('#prefStageChips .chip').forEach(c => c.classList.remove('active'));
+      }
+      if (el.dataset.reset === 'prefAllottee') {
+        prefState.filters.allottees.clear();
+        buildPrefFilterOptions();
+      }
+      prefState.page = 1; applyPrefFilters();
+    });
+  }
+});
+
+// When shared filters (search, date, symbol, minValue) change, also refresh
+// the pref tab if it's the active one.
+const _origApply = applyFilters;
+applyFilters = function() {
+  _origApply();
+  if (document.body.getAttribute('data-active-tab') === 'pref' && prefState.loaded) {
+    applyPrefFilters();
+  }
+};
+
+loadData();
+</script>
+</body>
+</html>

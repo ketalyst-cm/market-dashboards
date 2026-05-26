@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Market Dashboards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --surface: #ffffff;
+    --border: #e3e7ef;
+    --text: #1b1f2a;
+    --text-muted: #6b7282;
+    --text-faint: #97a0b1;
+    --primary: #4f46e5;
+    --primary-soft: #eef0ff;
+    --shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 12px rgba(15,23,42,.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #2a323d;
+      --text: #e6edf3;
+      --text-muted: #9aa4b2;
+      --text-faint: #6e7681;
+      --primary: #818cf8;
+      --primary-soft: #1e1b4b;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 48px 24px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  header { margin-bottom: 36px; }
+  h1 { font-size: 32px; font-weight: 800; margin: 0 0 6px; letter-spacing: -.02em; }
+  .subtitle { color: var(--text-muted); font-size: 16px; margin: 0; }
+  .updated { color: var(--text-faint); font-size: 12px; margin-top: 12px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    display: block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    text-decoration: none;
+    color: inherit;
+    transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary);
+    box-shadow: 0 4px 16px rgba(79, 70, 229, .12);
+  }
+  .card h2 {
+    font-size: 18px; font-weight: 700; margin: 0 0 8px;
+    color: var(--text);
+  }
+  .card p {
+    font-size: 14px; color: var(--text-muted); margin: 0 0 16px;
+    line-height: 1.5;
+  }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block;
+    background: var(--primary-soft); color: var(--primary);
+    font-size: 12px; font-weight: 600;
+    padding: 4px 10px; border-radius: 999px;
+  }
+  .open-arrow {
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--primary); font-size: 13px; font-weight: 600;
+    margin-top: 14px;
+  }
+  footer {
+    margin-top: 48px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-faint); font-size: 12px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Market Dashboards</h1>
+    <p class="subtitle">Live data from NSE &amp; BSE corporate filings — refreshed daily</p>
+    <p class="updated">Last refreshed: 2026-05-26 12:27</p>
+  </header>
+
+  <div class="grid">
+        <a class="card" href="insider-trading/dashboard.html">
+      <h2>Insider Trading &amp; Preferential Issues</h2>
+      <p>NSE insider trades, NSE preferential issues, BSE preferential announcements</p>
+      <div class="badges"><span class="badge">4,448 filings</span></div>
+      <div class="open-arrow">Open dashboard →</div>
+    </a>
+  </div>
+
+  <footer>
+    Auto-generated. Source data: NSE corporates-pit + corporates-pit-gg, NSE corporate-further-issues-pref, BSE corporate announcements.
+  </footer>
+</div>
+</body>
+</html>
