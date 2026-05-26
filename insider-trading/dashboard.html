@@ -841,9 +841,11 @@ function sortFiltered() {
   const mul = dir === 'asc' ? 1 : -1;
   state.filtered.sort((a, b) => {
     let av = a[key], bv = b[key];
+    // Sort by what's actually shown in the Date column — broadcast_date
+    // with intimation_date as a fallback. Same fallback the renderer uses.
     if (key === 'broadcast_date' || key === 'intimation_date') {
-      av = parseDate(a[key])?.getTime() || 0;
-      bv = parseDate(b[key])?.getTime() || 0;
+      av = parseDate(a.broadcast_date || a.intimation_date)?.getTime() || 0;
+      bv = parseDate(b.broadcast_date || b.intimation_date)?.getTime() || 0;
     }
     if (typeof av === 'string') av = av.toLowerCase();
     if (typeof bv === 'string') bv = bv.toLowerCase();
@@ -1370,7 +1372,13 @@ function sortPrefFiltered() {
   const mul = dir === 'asc' ? 1 : -1;
   prefState.filtered.sort((a, b) => {
     let av = a[key], bv = b[key];
-    if (key.endsWith('_date')) {
+    // For board_res_date, use the same fallback chain as the Date column
+    // renderer: board_res_date -> system_date -> submission_date. Otherwise
+    // any *_date column sorts by just its own field.
+    if (key === 'board_res_date') {
+      av = parseDate(a.board_res_date || a.system_date || a.submission_date)?.getTime() || 0;
+      bv = parseDate(b.board_res_date || b.system_date || b.submission_date)?.getTime() || 0;
+    } else if (key.endsWith('_date')) {
       av = parseDate(a[key])?.getTime() || 0;
       bv = parseDate(b[key])?.getTime() || 0;
     }
