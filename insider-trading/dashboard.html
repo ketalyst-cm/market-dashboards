@@ -278,8 +278,15 @@
     gap: 12px; flex-wrap: wrap;
   }
   .table-toolbar .count { font-size: 13px; color: var(--text-muted); }
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  /* Vertical scroll lives on the table-wrap so headers can stick at top
+     when scrolling. Horizontal scroll still falls back if a row is wider
+     than the viewport, but the .wrap cells below are designed to prevent
+     that from happening for normal data. */
+  .table-wrap {
+    max-height: calc(100vh - 280px);
+    overflow: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: auto; }
   thead th {
     text-align: left;
     background: var(--surface-2);
@@ -293,14 +300,30 @@
     white-space: nowrap;
     cursor: pointer;
     user-select: none;
-    position: sticky; top: 0; z-index: 1;
+    position: sticky; top: 0; z-index: 2;
+    box-shadow: 0 1px 0 var(--border);
   }
   thead th .arrow { color: var(--primary); margin-left: 4px; }
+  thead th.num-cell, thead th.center { text-align: center; }
   tbody td {
     padding: 11px 12px;
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
+    vertical-align: middle;
   }
+  /* Long-text cells (company names, acquirer names, descriptions) can wrap
+     onto multiple lines instead of forcing horizontal scroll. */
+  tbody td.wrap {
+    white-space: normal;
+    word-wrap: break-word;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    max-width: 260px;
+    min-width: 160px;
+    line-height: 1.35;
+  }
+  /* Center-aligned short fields (Date, Symbol, Category, Stage, etc.) */
+  tbody td.center { text-align: center; }
   tbody tr { cursor: pointer; transition: background .12s; }
   tbody tr:hover { background: var(--surface-2); }
   tbody tr.expanded { background: var(--primary-soft); }
@@ -406,10 +429,8 @@
       <div class="filter-label">Date range
         <span class="reset" data-reset="date">clear</span>
       </div>
-      <div class="row">
-        <input type="date" id="dateFrom">
-        <input type="date" id="dateTo">
-      </div>
+      <input type="date" id="dateFrom" aria-label="From date">
+      <input type="date" id="dateTo"   aria-label="To date" style="margin-top:6px">
       <div class="quick-range">
         <span class="chip" data-quick="7">7d</span>
         <span class="chip" data-quick="30">30d</span>
@@ -783,7 +804,12 @@ function applyFilters() {
   const f = state.filters;
   const search = f.search.toLowerCase();
   const minV = f.minValue;
-  const dFrom = f.dateFrom ? new Date(f.dateFrom) : null;
+  // Anchor both endpoints as LOCAL date midnight / end-of-day. Plain
+  // new Date('YYYY-MM-DD') is parsed as UTC midnight which, in IST,
+  // falls 5:30 hrs AFTER local midnight — so same-day broadcasts at
+  // local 00:00 get excluded by the "from" filter. The 'Txx:xx:xx'
+  // suffix forces local-time parsing.
+  const dFrom = f.dateFrom ? new Date(f.dateFrom + 'T00:00:00') : null;
   const dTo = f.dateTo ? new Date(f.dateTo + 'T23:59:59') : null;
 
   state.filtered = state.rows.filter(r => {
@@ -878,13 +904,13 @@ function renderTable() {
 
   tbody.innerHTML = slice.map(r => `
     <tr data-id="${r.id}" class="${state.expandedRowId === r.id ? 'expanded' : ''}">
-      <td>${escapeHtml(r.broadcast_date || r.intimation_date || '')}</td>
-      <td><span class="symbol-cell" data-symbol="${escapeAttr(r.symbol || '')}">${escapeHtml(r.symbol || '')}</span></td>
-      <td>${escapeHtml(r.company || '')}</td>
-      <td>${escapeHtml(r.acquirer_name || r.detail_acquirer || '')}</td>
-      <td>${escapeHtml(r.person_category || '')}</td>
-      <td><span class="bucket-pill ${r.bucket || 'Other'}">${escapeHtml(r.transaction_type || r.bucket || 'Other')}</span></td>
-      <td>${r.mode_of_acquisition ? `<span class="mode-pill ${modeClass(r.mode_of_acquisition)}">${escapeHtml(r.mode_of_acquisition)}</span>` : ''}</td>
+      <td class="center">${escapeHtml(r.broadcast_date || r.intimation_date || '')}</td>
+      <td class="center"><span class="symbol-cell" data-symbol="${escapeAttr(r.symbol || '')}">${escapeHtml(r.symbol || '')}</span></td>
+      <td class="wrap">${escapeHtml(r.company || '')}</td>
+      <td class="wrap">${escapeHtml(r.acquirer_name || r.detail_acquirer || '')}</td>
+      <td class="center">${escapeHtml(r.person_category || '')}</td>
+      <td class="center"><span class="bucket-pill ${r.bucket || 'Other'}">${escapeHtml(r.transaction_type || r.bucket || 'Other')}</span></td>
+      <td class="center">${r.mode_of_acquisition ? `<span class="mode-pill ${modeClass(r.mode_of_acquisition)}">${escapeHtml(r.mode_of_acquisition)}</span>` : ''}</td>
       <td class="num-cell">${fmtInt(r.qty_num)}</td>
       <td class="num-cell ${r.bucket === 'Sell' ? 'sell' : 'buy'}">${fmtCr(r.value_num)}</td>
       <td class="num-cell">${fmtPct(r.after_shares_pct_num ?? r.after_shares_pct)}</td>
@@ -1314,7 +1340,8 @@ function applyPrefFilters() {
   const sf = state.filters;
   const search = sf.search.toLowerCase();
   const minV = sf.minValue;
-  const dFrom = sf.dateFrom ? new Date(sf.dateFrom) : null;
+  // Anchor both endpoints as LOCAL time (see comment in applyFilters for why).
+  const dFrom = sf.dateFrom ? new Date(sf.dateFrom + 'T00:00:00') : null;
   const dTo = sf.dateTo ? new Date(sf.dateTo + 'T23:59:59') : null;
 
   prefState.filtered = prefState.rows.filter(r => {
@@ -1401,20 +1428,20 @@ function renderPrefTable() {
 
   tbody.innerHTML = slice.map(r => `
     <tr data-id="${r.id}" class="${prefState.expandedRowId === r.id ? 'expanded' : ''}">
-      <td>${escapeHtml(r.board_res_date || r.system_date || '')}</td>
-      <td><span class="stage-pill ${r.stage || ''}">${escapeHtml(r.stage || '')}</span></td>
-      <td><span class="symbol-cell" data-symbol="${escapeAttr(r.symbol || '')}">${escapeHtml(r.symbol || '')}</span></td>
-      <td>${escapeHtml(r.company || '')}</td>
-      <td>${r.allottee_category
+      <td class="center">${escapeHtml(r.board_res_date || r.system_date || '')}</td>
+      <td class="center"><span class="stage-pill ${r.stage || ''}">${escapeHtml(r.stage || '')}</span></td>
+      <td class="center"><span class="symbol-cell" data-symbol="${escapeAttr(r.symbol || '')}">${escapeHtml(r.symbol || '')}</span></td>
+      <td class="wrap">${escapeHtml(r.company || '')}</td>
+      <td class="wrap">${r.allottee_category
             ? `<span class="cat-pill ${prefAllotteeClass(r.allottee_category)}">${escapeHtml(r.allottee_category)}</span>`
             : (r.announcement_description
-                ? `<span title="${escapeAttr(r.announcement_description)}" style="font-size:12px;color:var(--text-muted)">${escapeHtml(r.announcement_description.length > 90 ? r.announcement_description.slice(0, 90) + '…' : r.announcement_description)}</span>`
+                ? `<span title="${escapeAttr(r.announcement_description)}" style="font-size:12px;color:var(--text-muted)">${escapeHtml(r.announcement_description.length > 110 ? r.announcement_description.slice(0, 110) + '…' : r.announcement_description)}</span>`
                 : '')}</td>
       <td class="num-cell">${fmtCr(r.amount_raised_num)}</td>
       <td class="num-cell">${fmtPrice(r.offer_price_num)}</td>
       <td class="num-cell">${fmtInt(r.shares_allotted_num)}</td>
-      <td>${escapeHtml(r.allotment_date || '')}</td>
-      <td>${escapeHtml(r.listing_date || '')}</td>
+      <td class="center">${escapeHtml(r.allotment_date || '')}</td>
+      <td class="center">${escapeHtml(r.listing_date || '')}</td>
     </tr>
     ${prefState.expandedRowId === r.id ? renderPrefDetailPane(r) : ''}
   `).join('');
