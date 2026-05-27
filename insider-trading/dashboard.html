@@ -185,6 +185,7 @@
                  font-size: 11px; font-weight: 500; white-space: nowrap; }
   .mstage-pill.s-Disclosure         { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
   .mstage-pill.s-BoardApproved      { background: rgba(59,130,246,.15);  color: #1d4ed8; }
+  .mstage-pill.s-SchemeFiled        { background: rgba(99,102,241,.15);  color: #4338ca; }
   .mstage-pill.s-ShareholderMeeting { background: rgba(99,102,241,.15);  color: #4338ca; }
   .mstage-pill.s-NoCReceived        { background: rgba(6,182,212,.15);   color: #0e7490; }
   .mstage-pill.s-SEBIApproval       { background: rgba(14,165,233,.15);  color: #0369a1; }
@@ -196,6 +197,7 @@
   .mstage-pill.s-Update             { background: rgba(168,162,158,.15); color: #57534e; }
   .mstage-pill.s-Other              { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
   [data-theme="dark"] .mstage-pill.s-BoardApproved      { color: #93c5fd; }
+  [data-theme="dark"] .mstage-pill.s-SchemeFiled        { color: #a5b4fc; }
   [data-theme="dark"] .mstage-pill.s-ShareholderMeeting { color: #a5b4fc; }
   [data-theme="dark"] .mstage-pill.s-NoCReceived        { color: #67e8f9; }
   [data-theme="dark"] .mstage-pill.s-SEBIApproval       { color: #7dd3fc; }
@@ -526,26 +528,13 @@
     </div>
 
     <div class="filter-group mergers-only">
-      <div class="filter-label">Type
-        <span class="reset" data-reset="mergerType">clear</span>
-      </div>
-      <div class="chip-row" id="mergerTypeChips">
-        <span class="chip" data-mtype="Merger">Merger</span>
-        <span class="chip" data-mtype="Demerger">Demerger</span>
-        <span class="chip" data-mtype="Amalgamation">Amalgamation</span>
-        <span class="chip" data-mtype="Arrangement">Arrangement</span>
-        <span class="chip" data-mtype="Slump Sale">Slump Sale</span>
-        <span class="chip" data-mtype="Other">Other</span>
-      </div>
-    </div>
-
-    <div class="filter-group mergers-only">
       <div class="filter-label">Stage
         <span class="reset" data-reset="mergerStage">clear</span>
       </div>
       <div class="chip-row" id="mergerStageChips">
         <span class="chip" data-mstage="Disclosure">Disclosure</span>
         <span class="chip" data-mstage="Board Approved">Board Approved</span>
+        <span class="chip" data-mstage="Scheme Filed">Scheme Filed</span>
         <span class="chip" data-mstage="Shareholder Meeting">Shareholder Mtg</span>
         <span class="chip" data-mstage="NoC Received">NoC</span>
         <span class="chip" data-mstage="SEBI Approval">SEBI</span>
@@ -595,7 +584,7 @@
     <div class="tabs" id="tabs">
       <div class="tab active" data-tab="insider">Insider Trading <span class="count" id="tabCountInsider"></span></div>
       <div class="tab" data-tab="pref">Preferential Issues <span class="count" id="tabCountPref"></span></div>
-      <div class="tab" data-tab="mergers">Mergers / Demergers <span class="count" id="tabCountMergers"></span></div>
+      <div class="tab" data-tab="mergers">Demergers / Spinoffs <span class="count" id="tabCountMergers"></span></div>
     </div>
 
     <!-- Insider tab content -->
@@ -750,7 +739,6 @@
                 <th data-sort="submission_date">Date</th>
                 <th data-sort="symbol">Scrip</th>
                 <th data-sort="company">Company</th>
-                <th data-sort="_category">Type</th>
                 <th data-sort="_stage">Stage</th>
                 <th data-sort="announcement_description">Description</th>
               </tr>
@@ -1730,7 +1718,12 @@ const mergersState = {
 // announcement subject + description text. First match in priority order.
 function classifyMergerType(text) {
   const t = (text || '').toLowerCase();
-  if (t.includes('demerger') || t.includes('de-merger')) return 'Demerger';
+  // Demerger / Spinoff first — those are the categories we surface on
+  // the Demergers/Spinoffs tab. "Hive off" and "carve out" also count.
+  if (t.includes('demerger') || t.includes('de-merger') ||
+      t.includes('spin-off') || t.includes('spinoff') ||
+      t.includes('hive-off') || t.includes('hive off') ||
+      t.includes('carve-out') || t.includes('carve out')) return 'Demerger';
   if (t.includes('amalgamation') || t.includes('amalgamate')) return 'Amalgamation';
   if (t.includes('slump sale') || t.includes('slump-sale')) return 'Slump Sale';
   if (t.includes('merger') || t.includes('merged') || t.includes('merging') ||
@@ -1759,6 +1752,10 @@ function classifyMergerStage(text) {
   if (t.includes('shareholder') && (t.includes('meeting') || t.includes('approval'))) return 'Shareholder Meeting';
   if (t.includes('board approval') || t.includes('board has approved') ||
       t.includes('board approved') || t.includes('approved by the board')) return 'Board Approved';
+  // NSE Scheme Document Filing — a formal stage between board approval
+  // and SEBI/NCLT, when the company files the scheme docs with NSE.
+  if (t.includes('scheme document') || t.includes('scheme filed') ||
+      t.includes('scheme of arrangement filed')) return 'Scheme Filed';
   if (t.includes('update on') || t.includes('intimation')) return 'Update';
   if (t.includes('disclosure under') || t.includes('regulation 30')) return 'Disclosure';
   return 'Other';
@@ -1773,7 +1770,11 @@ async function loadMergersData() {
     const r = await fetch('data/mergers_data.json?t=' + Date.now());
     if (!r.ok) throw new Error(r.status);
     const j = await r.json();
-    // Run classifiers once at load time and stash on each row
+    // Classify every row, then drop anything that isn't a Demerger /
+    // spinoff. The full dataset (incl. Mergers, Amalgamations, Slump
+    // Sales, Arrangements) stays in the JSON for future use — we just
+    // don't render them on this tab. To broaden later, remove the
+    // .filter() line below.
     mergersState.rows = (j.rows || []).map(r => {
       const txt = `${r.announcement_subject || ''} ${r.announcement_description || ''}`;
       return {
@@ -1781,14 +1782,14 @@ async function loadMergersData() {
         _category: classifyMergerType(txt),
         _stage: classifyMergerStage(txt),
       };
-    });
+    }).filter(r => r._category === 'Demerger');
     mergersState.loaded = true;
     document.getElementById('tabCountMergers').textContent = mergersState.rows.length;
     applyMergersFilters();
   } catch (e) {
     mergersState.loaded = true;
     document.getElementById('mergersTableBody').innerHTML =
-      '<tr><td colspan="6"><div class="empty"><h3>No mergers data yet</h3>' +
+      '<tr><td colspan="5"><div class="empty"><h3>No mergers data yet</h3>' +
       '<p>Run <code>py Scripts\\fetch_bse_announcements.py --mode mergers</code> ' +
       'to fetch the BSE Scheme-of-Arrangement announcements.</p></div></td></tr>';
   }
@@ -1861,8 +1862,7 @@ function renderMergersKpis() {
   const topType  = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
   const topStage = Object.entries(stageCounts).sort((a, b) => b[1] - a[1])[0];
   document.getElementById('mergersKpis').innerHTML = `
-    <div class="kpi"><div class="label">Announcements</div><div class="value">${fmtInt(rows.length)}</div><div class="delta">${companies.size} unique companies</div></div>
-    <div class="kpi"><div class="label">Most common type</div><div class="value" style="font-size:16px">${escapeHtml(topType ? topType[0] : '—')}</div><div class="delta">${topType ? topType[1] + ' filings' : ''}</div></div>
+    <div class="kpi"><div class="label">Demerger announcements</div><div class="value">${fmtInt(rows.length)}</div><div class="delta">${companies.size} unique companies</div></div>
     <div class="kpi"><div class="label">Most common stage</div><div class="value" style="font-size:16px">${escapeHtml(topStage ? topStage[0] : '—')}</div><div class="delta">${topStage ? topStage[1] + ' filings' : ''}</div></div>
     <div class="kpi"><div class="label">Most recent</div><div class="value" style="font-size:13px">${escapeHtml((mostRecent || '').slice(0, 16))}</div><div class="delta">BSE-published</div></div>
   `;
@@ -1876,7 +1876,7 @@ function renderMergersTable() {
     `${fmtInt(mergersState.filtered.length)} matching announcements  •  showing ${fmtInt(slice.length)}`;
 
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><h3>No matches</h3><p>Adjust filters or load data first.</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty"><h3>No matches</h3><p>Adjust filters or load data first.</p></div></td></tr>';
     document.getElementById('mergersPagination').innerHTML = '';
     return;
   }
@@ -1886,7 +1886,6 @@ function renderMergersTable() {
       <td class="center">${escapeHtml(r.submission_date || r.system_date || '')}</td>
       <td class="center"><span class="symbol-cell" data-symbol="${escapeAttr(r.symbol || '')}">${escapeHtml(r.symbol || '')}</span></td>
       <td class="wrap">${escapeHtml(r.company || '')}</td>
-      <td class="center"><span class="mtype-pill ${_typeClass(r._category)}">${escapeHtml(r._category)}</span></td>
       <td class="center"><span class="mstage-pill ${_stageClass(r._stage)}">${escapeHtml(r._stage)}</span></td>
       <td class="wrap" style="font-size:12px">${r.announcement_description
             ? `<span title="${escapeAttr(r.announcement_description)}">${escapeHtml(r.announcement_description.length > 110 ? r.announcement_description.slice(0, 110) + '…' : r.announcement_description)}</span>`
@@ -1923,11 +1922,15 @@ function renderMergersTable() {
 function renderMergersDetailPane(r) {
   const fields = [];
   const top = [
+    ['Source', (r.raw && r.raw._source) === 'nse-scheme' ? 'NSE Scheme Document' : 'BSE Announcement'],
     ['BSE Scrip', r.bse_scrip_code || r.symbol],
     ['Company', r.company],
     ['Submission date', r.submission_date],
     ['Subject', r.announcement_subject],
     ['Description', r.announcement_description],
+    ['Complaint report date', r.complaint_report_date],
+    ['Observation letter date', r.observation_letter_date],
+    ['Scheme ZIP size', r.scheme_zip_size],
   ];
   for (const [k, v] of top) if (v) fields.push(`<div class="field"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>`);
 
@@ -1939,12 +1942,16 @@ function renderMergersDetailPane(r) {
     }
   }
 
+  const isNse = (r.raw && r.raw._source) === 'nse-scheme';
   const pdfUrl = r.attachment_url || (r.raw && r.raw.attachment_url);
-  return `<tr class="detail-row"><td colspan="6"><div class="detail-pane">
+  const zipLabel = isNse ? '📦 Scheme Documents ZIP ↗' : '📄 Open Filing PDF ↗';
+  return `<tr class="detail-row"><td colspan="5"><div class="detail-pane">
     <div class="detail-grid">${fields.join('')}</div>
     <div class="detail-actions">
-      ${pdfUrl ? `<a href="${escapeAttr(pdfUrl)}" target="_blank">📄 Open Filing PDF ↗</a>` : ''}
-      ${r.details_link ? `<a href="${escapeAttr(r.details_link)}" target="_blank" style="opacity:.7;font-size:11px">XBRL source ↗</a>` : ''}
+      ${pdfUrl ? `<a href="${escapeAttr(pdfUrl)}" target="_blank">${zipLabel}</a>` : ''}
+      ${r.complaint_report_url ? `<a href="${escapeAttr(r.complaint_report_url)}" target="_blank">📋 Complaints Report ↗</a>` : ''}
+      ${r.observation_letter_url ? `<a href="${escapeAttr(r.observation_letter_url)}" target="_blank">📜 Observation Letter ↗</a>` : ''}
+      ${!isNse && r.details_link ? `<a href="${escapeAttr(r.details_link)}" target="_blank" style="opacity:.7;font-size:11px">XBRL source ↗</a>` : ''}
       ${r.symbol ? `<a href="https://www.bseindia.com/stock-share-price/-/-/${escapeAttr(r.symbol)}/" target="_blank">BSE quote ↗</a>` : ''}
     </div>
   </div></td></tr>`;
