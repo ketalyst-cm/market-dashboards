@@ -3,6 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- Best-effort hints to browsers not to serve a stale HTML cache. Most
+     modern browsers honour these for navigation requests; combined with
+     the build-time check below, this keeps friends close to the live data. -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- publish_to_web.py rewrites this on every push; the JS polls
+     /version.txt and prompts the user to refresh if it sees a newer build. -->
+<meta name="build-time" content="2026-05-27T19:37:57">
 <title>Insider Trading Dashboard — NSE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -453,6 +462,35 @@
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+  /* Build-time stamp shown in the page footer so you can verify which
+     version you're on; helpful when troubleshooting stale-cache issues. */
+  .build-footer {
+    margin-top: 32px; padding: 12px 0; text-align: center;
+    color: var(--text-faint); font-size: 11px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* "Newer version available" banner — appears when the JS poll detects
+     a fresher build of the dashboard has been published. */
+  .update-banner {
+    position: fixed; bottom: 20px; right: 20px; z-index: 999;
+    background: var(--primary); color: white;
+    padding: 12px 20px; border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(79,70,229,.3);
+    font-size: 13px; display: flex; gap: 12px; align-items: center;
+    animation: slide-up .25s ease;
+  }
+  .update-banner button {
+    background: white; color: var(--primary);
+    border: none; padding: 6px 14px; border-radius: 6px;
+    font-weight: 600; cursor: pointer;
+  }
+  .update-banner .dismiss {
+    background: transparent; color: white; padding: 2px 8px;
+    opacity: .7; font-size: 18px; line-height: 1;
+  }
+  @keyframes slide-up { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 </style>
 </head>
 <body>
@@ -2085,6 +2123,51 @@ document.querySelectorAll('[data-reset]').forEach(el => {
     });
   }
 });
+
+// =====================================================================
+// BUILD VERSION + STALE-CACHE DETECTION
+// =====================================================================
+// Read the build timestamp publish_to_web.py injected into the HTML
+// head. Show it in the footer so the user can verify which version
+// they're on; poll version.txt every 60s and show a refresh prompt if
+// a newer build has been published.
+const _buildTime = document.querySelector('meta[name="build-time"]')?.content || '';
+const _buildLabel = (_buildTime && _buildTime !== '2026-05-27T19:37:57') ? _buildTime : 'local';
+
+// Add the footer
+{
+  const footer = document.createElement('div');
+  footer.className = 'build-footer';
+  footer.innerHTML = `Dashboard build: <span class="mono">${_buildLabel}</span>  •  Data refreshes daily at 7 PM IST`;
+  document.querySelector('.main').appendChild(footer);
+}
+
+function _showUpdateBanner(newBuild) {
+  if (document.getElementById('updateBanner')) return;
+  const b = document.createElement('div');
+  b.id = 'updateBanner';
+  b.className = 'update-banner';
+  b.innerHTML = `
+    <span>🔄 New dashboard version available (${newBuild.slice(0, 16)})</span>
+    <button id="updateRefreshBtn">Refresh</button>
+    <button class="dismiss" id="updateDismissBtn" title="Dismiss">×</button>
+  `;
+  document.body.appendChild(b);
+  document.getElementById('updateRefreshBtn').onclick = () => location.reload();
+  document.getElementById('updateDismissBtn').onclick = () => b.remove();
+}
+
+async function _checkVersion() {
+  if (_buildLabel === 'local') return;   // local dev — no polling needed
+  try {
+    const r = await fetch('../version.txt?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) return;
+    const txt = (await r.text()).trim();
+    if (txt && txt !== _buildTime) _showUpdateBanner(txt);
+  } catch { /* offline / network blip — ignore, try again next interval */ }
+}
+setInterval(_checkVersion, 60_000);   // check every minute
+setTimeout(_checkVersion, 2_000);     // also check 2s after load
 
 loadData();
 </script>
