@@ -160,9 +160,51 @@
   .tab .count { font-weight: 500; color: var(--text-faint); margin-left: 6px; font-size: 11px; }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
-  .filter-group.insider-only, .filter-group.pref-only { display: none; }
+  .filter-group.insider-only, .filter-group.pref-only, .filter-group.mergers-only { display: none; }
   body[data-active-tab="insider"] .filter-group.insider-only { display: block; }
   body[data-active-tab="pref"]    .filter-group.pref-only    { display: block; }
+  body[data-active-tab="mergers"] .filter-group.mergers-only { display: block; }
+
+  /* Merger Type pill */
+  .mtype-pill { display: inline-block; padding: 2px 8px; border-radius: 4px;
+                font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .mtype-pill.t-Merger       { background: rgba(59,130,246,.18); color: #1d4ed8; }
+  .mtype-pill.t-Demerger     { background: rgba(139,92,246,.18); color: #7c3aed; }
+  .mtype-pill.t-Amalgamation { background: rgba(20,184,166,.18); color: #0f766e; }
+  .mtype-pill.t-Arrangement  { background: rgba(107,114,128,.18); color: #4b5563; }
+  .mtype-pill.t-SlumpSale    { background: rgba(245,158,11,.18); color: #b45309; }
+  .mtype-pill.t-Other        { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+  [data-theme="dark"] .mtype-pill.t-Merger       { color: #93c5fd; }
+  [data-theme="dark"] .mtype-pill.t-Demerger     { color: #c4b5fd; }
+  [data-theme="dark"] .mtype-pill.t-Amalgamation { color: #5eead4; }
+  [data-theme="dark"] .mtype-pill.t-Arrangement  { color: #cbd5e1; }
+  [data-theme="dark"] .mtype-pill.t-SlumpSale    { color: #fbbf24; }
+
+  /* Merger Stage pill — ordered roughly by lifecycle */
+  .mstage-pill { display: inline-block; padding: 2px 8px; border-radius: 4px;
+                 font-size: 11px; font-weight: 500; white-space: nowrap; }
+  .mstage-pill.s-Disclosure         { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+  .mstage-pill.s-BoardApproved      { background: rgba(59,130,246,.15);  color: #1d4ed8; }
+  .mstage-pill.s-ShareholderMeeting { background: rgba(99,102,241,.15);  color: #4338ca; }
+  .mstage-pill.s-NoCReceived        { background: rgba(6,182,212,.15);   color: #0e7490; }
+  .mstage-pill.s-SEBIApproval       { background: rgba(14,165,233,.15);  color: #0369a1; }
+  .mstage-pill.s-NCLTFiled          { background: rgba(245,158,11,.18);  color: #b45309; }
+  .mstage-pill.s-NCLTOrder          { background: rgba(249,115,22,.18);  color: #c2410c; }
+  .mstage-pill.s-Effective          { background: rgba(16,185,129,.18);  color: #047857; }
+  .mstage-pill.s-RecordDate         { background: rgba(34,197,94,.15);   color: #15803d; }
+  .mstage-pill.s-Listed             { background: rgba(5,150,105,.20);   color: #064e3b; }
+  .mstage-pill.s-Update             { background: rgba(168,162,158,.15); color: #57534e; }
+  .mstage-pill.s-Other              { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+  [data-theme="dark"] .mstage-pill.s-BoardApproved      { color: #93c5fd; }
+  [data-theme="dark"] .mstage-pill.s-ShareholderMeeting { color: #a5b4fc; }
+  [data-theme="dark"] .mstage-pill.s-NoCReceived        { color: #67e8f9; }
+  [data-theme="dark"] .mstage-pill.s-SEBIApproval       { color: #7dd3fc; }
+  [data-theme="dark"] .mstage-pill.s-NCLTFiled          { color: #fbbf24; }
+  [data-theme="dark"] .mstage-pill.s-NCLTOrder          { color: #fb923c; }
+  [data-theme="dark"] .mstage-pill.s-Effective          { color: #34d399; }
+  [data-theme="dark"] .mstage-pill.s-RecordDate         { color: #4ade80; }
+  [data-theme="dark"] .mstage-pill.s-Listed             { color: #6ee7b7; }
+  [data-theme="dark"] .mstage-pill.s-Update             { color: #a8a29e; }
 
   /* Stage pill (preferential tab) */
   .stage-pill { display: inline-block; padding: 2px 8px; border-radius: 4px;
@@ -483,6 +525,40 @@
       <div class="multi-select" id="prefAllotteeFilter"></div>
     </div>
 
+    <div class="filter-group mergers-only">
+      <div class="filter-label">Type
+        <span class="reset" data-reset="mergerType">clear</span>
+      </div>
+      <div class="chip-row" id="mergerTypeChips">
+        <span class="chip" data-mtype="Merger">Merger</span>
+        <span class="chip" data-mtype="Demerger">Demerger</span>
+        <span class="chip" data-mtype="Amalgamation">Amalgamation</span>
+        <span class="chip" data-mtype="Arrangement">Arrangement</span>
+        <span class="chip" data-mtype="Slump Sale">Slump Sale</span>
+        <span class="chip" data-mtype="Other">Other</span>
+      </div>
+    </div>
+
+    <div class="filter-group mergers-only">
+      <div class="filter-label">Stage
+        <span class="reset" data-reset="mergerStage">clear</span>
+      </div>
+      <div class="chip-row" id="mergerStageChips">
+        <span class="chip" data-mstage="Disclosure">Disclosure</span>
+        <span class="chip" data-mstage="Board Approved">Board Approved</span>
+        <span class="chip" data-mstage="Shareholder Meeting">Shareholder Mtg</span>
+        <span class="chip" data-mstage="NoC Received">NoC</span>
+        <span class="chip" data-mstage="SEBI Approval">SEBI</span>
+        <span class="chip" data-mstage="NCLT Filed">NCLT Filed</span>
+        <span class="chip" data-mstage="NCLT Order">NCLT Order</span>
+        <span class="chip" data-mstage="Effective">Effective</span>
+        <span class="chip" data-mstage="Record Date">Record Date</span>
+        <span class="chip" data-mstage="Listed">Listed</span>
+        <span class="chip" data-mstage="Update">Update</span>
+        <span class="chip" data-mstage="Other">Other</span>
+      </div>
+    </div>
+
     <div class="filter-group">
       <div class="filter-label">Symbol
         <span class="reset" data-reset="symbol">clear</span>
@@ -519,6 +595,7 @@
     <div class="tabs" id="tabs">
       <div class="tab active" data-tab="insider">Insider Trading <span class="count" id="tabCountInsider"></span></div>
       <div class="tab" data-tab="pref">Preferential Issues <span class="count" id="tabCountPref"></span></div>
+      <div class="tab" data-tab="mergers">Mergers / Demergers <span class="count" id="tabCountMergers"></span></div>
     </div>
 
     <!-- Insider tab content -->
@@ -648,6 +725,42 @@
         <div class="pagination" id="prefPagination"></div>
       </div>
     </div><!-- /pref tab -->
+
+    <!-- Mergers / Demergers tab content -->
+    <div class="tab-content" data-tab-content="mergers">
+      <div class="kpis" id="mergersKpis"></div>
+
+      <div class="card table-card">
+        <div class="table-toolbar">
+          <div class="count" id="mergersTableCount">—</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;color:var(--text-muted)">Rows per page</span>
+            <select id="mergersPageSize" style="width:auto">
+              <option>25</option>
+              <option selected>50</option>
+              <option>100</option>
+              <option>250</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="mergersTable">
+            <thead>
+              <tr>
+                <th data-sort="submission_date">Date</th>
+                <th data-sort="symbol">Scrip</th>
+                <th data-sort="company">Company</th>
+                <th data-sort="_category">Type</th>
+                <th data-sort="_stage">Stage</th>
+                <th data-sort="announcement_description">Description</th>
+              </tr>
+            </thead>
+            <tbody id="mergersTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="mergersPagination"></div>
+      </div>
+    </div><!-- /mergers tab -->
   </main>
 </div>
 
@@ -1595,6 +1708,270 @@ function upsertPrefChart(id, type, data, options = {}) {
   });
 }
 
+// =====================================================================
+// MERGERS / DEMERGERS TAB
+// =====================================================================
+const mergersState = {
+  rows: [],
+  filtered: [],
+  page: 1,
+  pageSize: 50,
+  sort: { key: 'submission_date', dir: 'desc' },
+  filters: {
+    types: new Set(),
+    stages: new Set(),
+  },
+  charts: {},
+  expandedRowId: null,
+  loaded: false,
+};
+
+// Keyword classifier — runs once per row at load time. Operates on the
+// announcement subject + description text. First match in priority order.
+function classifyMergerType(text) {
+  const t = (text || '').toLowerCase();
+  if (t.includes('demerger') || t.includes('de-merger')) return 'Demerger';
+  if (t.includes('amalgamation') || t.includes('amalgamate')) return 'Amalgamation';
+  if (t.includes('slump sale') || t.includes('slump-sale')) return 'Slump Sale';
+  if (t.includes('merger') || t.includes('merged') || t.includes('merging') ||
+      t.includes('absorption')) return 'Merger';
+  if (t.includes('scheme of arrangement') || t.includes('arrangement')) return 'Arrangement';
+  return 'Other';
+}
+
+// Stage classifier — same approach. Ordered roughly by lifecycle so
+// later-stage keywords win over earlier ones if both match.
+function classifyMergerStage(text) {
+  const t = (text || '').toLowerCase();
+  if (t.includes('listing of') || t.includes('commencement of trading') ||
+      t.includes('trading approval')) return 'Listed';
+  if (t.includes('record date')) return 'Record Date';
+  if (t.includes('effective date') || t.includes('became effective') ||
+      t.includes('has become effective') || t.includes('effectiveness of the scheme')) return 'Effective';
+  if (t.includes('nclt') && (t.includes('order') || t.includes('approved') ||
+      t.includes('sanction') || t.includes('sanctioned'))) return 'NCLT Order';
+  if (t.includes('nclt') && (t.includes('filed') || t.includes('petition') ||
+      t.includes('first motion') || t.includes('second motion') ||
+      t.includes('application'))) return 'NCLT Filed';
+  if (t.includes('sebi') && t.includes('approval')) return 'SEBI Approval';
+  if (t.includes('no-objection') || t.includes('noc') ||
+      t.includes('observation letter') || t.includes('no objection')) return 'NoC Received';
+  if (t.includes('shareholder') && (t.includes('meeting') || t.includes('approval'))) return 'Shareholder Meeting';
+  if (t.includes('board approval') || t.includes('board has approved') ||
+      t.includes('board approved') || t.includes('approved by the board')) return 'Board Approved';
+  if (t.includes('update on') || t.includes('intimation')) return 'Update';
+  if (t.includes('disclosure under') || t.includes('regulation 30')) return 'Disclosure';
+  return 'Other';
+}
+
+// CSS-safe class suffix for pill colouring (strips spaces)
+function _stageClass(s) { return 's-' + (s || '').replace(/\s+/g, ''); }
+function _typeClass(s)  { return 't-' + (s || '').replace(/\s+/g, ''); }
+
+async function loadMergersData() {
+  try {
+    const r = await fetch('data/mergers_data.json?t=' + Date.now());
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    // Run classifiers once at load time and stash on each row
+    mergersState.rows = (j.rows || []).map(r => {
+      const txt = `${r.announcement_subject || ''} ${r.announcement_description || ''}`;
+      return {
+        ...r,
+        _category: classifyMergerType(txt),
+        _stage: classifyMergerStage(txt),
+      };
+    });
+    mergersState.loaded = true;
+    document.getElementById('tabCountMergers').textContent = mergersState.rows.length;
+    applyMergersFilters();
+  } catch (e) {
+    mergersState.loaded = true;
+    document.getElementById('mergersTableBody').innerHTML =
+      '<tr><td colspan="6"><div class="empty"><h3>No mergers data yet</h3>' +
+      '<p>Run <code>py Scripts\\fetch_bse_announcements.py --mode mergers</code> ' +
+      'to fetch the BSE Scheme-of-Arrangement announcements.</p></div></td></tr>';
+  }
+}
+
+function applyMergersFilters() {
+  const sf = state.filters;
+  const mf = mergersState.filters;
+  const search = sf.search.toLowerCase();
+  const dFrom = sf.dateFrom ? new Date(sf.dateFrom + 'T00:00:00') : null;
+  const dTo = sf.dateTo ? new Date(sf.dateTo + 'T23:59:59') : null;
+
+  mergersState.filtered = mergersState.rows.filter(r => {
+    if (search) {
+      const hay = `${r.symbol || ''} ${r.company || ''} ${r.announcement_subject || ''} ${r.announcement_description || ''}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (sf.symbols.size && !sf.symbols.has(r.symbol)) return false;
+    if (mf.types.size && !mf.types.has(r._category)) return false;
+    if (mf.stages.size && !mf.stages.has(r._stage)) return false;
+    if (dFrom || dTo) {
+      const d = parseDate(r.submission_date || r.system_date);
+      if (!d) return false;
+      if (dFrom && d < dFrom) return false;
+      if (dTo && d > dTo) return false;
+    }
+    return true;
+  });
+  sortMergersFiltered();
+  renderMergers();
+}
+
+function sortMergersFiltered() {
+  const { key, dir } = mergersState.sort;
+  const mul = dir === 'asc' ? 1 : -1;
+  mergersState.filtered.sort((a, b) => {
+    let av = a[key], bv = b[key];
+    if (key.endsWith('_date')) {
+      av = parseDate(a[key])?.getTime() || 0;
+      bv = parseDate(b[key])?.getTime() || 0;
+    }
+    if (typeof av === 'string') av = av.toLowerCase();
+    if (typeof bv === 'string') bv = bv.toLowerCase();
+    if (av == null || av === '') return 1;
+    if (bv == null || bv === '') return -1;
+    if (av < bv) return -1 * mul;
+    if (av > bv) return 1 * mul;
+    return 0;
+  });
+}
+
+function renderMergers() {
+  renderMergersKpis();
+  renderMergersTable();
+}
+
+function renderMergersKpis() {
+  const rows = mergersState.filtered;
+  const companies = new Set();
+  let mostRecent = '';
+  const typeCounts = {};
+  const stageCounts = {};
+  for (const r of rows) {
+    const id = r.symbol || r.company;
+    if (id) companies.add(id);
+    if ((r.submission_date || '') > mostRecent) mostRecent = r.submission_date || '';
+    typeCounts[r._category] = (typeCounts[r._category] || 0) + 1;
+    stageCounts[r._stage] = (stageCounts[r._stage] || 0) + 1;
+  }
+  const topType  = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0];
+  const topStage = Object.entries(stageCounts).sort((a, b) => b[1] - a[1])[0];
+  document.getElementById('mergersKpis').innerHTML = `
+    <div class="kpi"><div class="label">Announcements</div><div class="value">${fmtInt(rows.length)}</div><div class="delta">${companies.size} unique companies</div></div>
+    <div class="kpi"><div class="label">Most common type</div><div class="value" style="font-size:16px">${escapeHtml(topType ? topType[0] : '—')}</div><div class="delta">${topType ? topType[1] + ' filings' : ''}</div></div>
+    <div class="kpi"><div class="label">Most common stage</div><div class="value" style="font-size:16px">${escapeHtml(topStage ? topStage[0] : '—')}</div><div class="delta">${topStage ? topStage[1] + ' filings' : ''}</div></div>
+    <div class="kpi"><div class="label">Most recent</div><div class="value" style="font-size:13px">${escapeHtml((mostRecent || '').slice(0, 16))}</div><div class="delta">BSE-published</div></div>
+  `;
+}
+
+function renderMergersTable() {
+  const tbody = document.getElementById('mergersTableBody');
+  const start = (mergersState.page - 1) * mergersState.pageSize;
+  const slice = mergersState.filtered.slice(start, start + mergersState.pageSize);
+  document.getElementById('mergersTableCount').textContent =
+    `${fmtInt(mergersState.filtered.length)} matching announcements  •  showing ${fmtInt(slice.length)}`;
+
+  if (!slice.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><h3>No matches</h3><p>Adjust filters or load data first.</p></div></td></tr>';
+    document.getElementById('mergersPagination').innerHTML = '';
+    return;
+  }
+
+  tbody.innerHTML = slice.map(r => `
+    <tr data-id="${r.id}" class="${mergersState.expandedRowId === r.id ? 'expanded' : ''}">
+      <td class="center">${escapeHtml(r.submission_date || r.system_date || '')}</td>
+      <td class="center"><span class="symbol-cell" data-symbol="${escapeAttr(r.symbol || '')}">${escapeHtml(r.symbol || '')}</span></td>
+      <td class="wrap">${escapeHtml(r.company || '')}</td>
+      <td class="center"><span class="mtype-pill ${_typeClass(r._category)}">${escapeHtml(r._category)}</span></td>
+      <td class="center"><span class="mstage-pill ${_stageClass(r._stage)}">${escapeHtml(r._stage)}</span></td>
+      <td class="wrap" style="font-size:12px">${r.announcement_description
+            ? `<span title="${escapeAttr(r.announcement_description)}">${escapeHtml(r.announcement_description.length > 110 ? r.announcement_description.slice(0, 110) + '…' : r.announcement_description)}</span>`
+            : ''}</td>
+    </tr>
+    ${mergersState.expandedRowId === r.id ? renderMergersDetailPane(r) : ''}
+  `).join('');
+
+  document.querySelectorAll('#mergersTable thead th').forEach(th => {
+    const k = th.dataset.sort;
+    th.innerHTML = th.innerHTML.replace(/ ?[▲▼]$/, '');
+    if (k === mergersState.sort.key) th.innerHTML += ' ' + (mergersState.sort.dir === 'asc' ? '▲' : '▼');
+  });
+
+  tbody.querySelectorAll('tr[data-id]').forEach(tr => {
+    tr.addEventListener('click', e => {
+      if (e.target.classList.contains('symbol-cell')) {
+        const sym = e.target.dataset.symbol;
+        state.filters.symbols = new Set([sym]);
+        buildFilterOptions();
+        mergersState.page = 1;
+        applyMergersFilters();
+        return;
+      }
+      const id = tr.dataset.id;
+      mergersState.expandedRowId = mergersState.expandedRowId === id ? null : id;
+      renderMergersTable();
+    });
+  });
+
+  renderMergersPagination();
+}
+
+function renderMergersDetailPane(r) {
+  const fields = [];
+  const top = [
+    ['BSE Scrip', r.bse_scrip_code || r.symbol],
+    ['Company', r.company],
+    ['Submission date', r.submission_date],
+    ['Subject', r.announcement_subject],
+    ['Description', r.announcement_description],
+  ];
+  for (const [k, v] of top) if (v) fields.push(`<div class="field"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>`);
+
+  const seen = new Set(top.map(t => t[0].toLowerCase()));
+  if (r.details && typeof r.details === 'object') {
+    for (const [k, v] of Object.entries(r.details)) {
+      if (!v || seen.has(k.toLowerCase())) continue;
+      fields.push(`<div class="field"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>`);
+    }
+  }
+
+  const pdfUrl = r.attachment_url || (r.raw && r.raw.attachment_url);
+  return `<tr class="detail-row"><td colspan="6"><div class="detail-pane">
+    <div class="detail-grid">${fields.join('')}</div>
+    <div class="detail-actions">
+      ${pdfUrl ? `<a href="${escapeAttr(pdfUrl)}" target="_blank">📄 Open Filing PDF ↗</a>` : ''}
+      ${r.details_link ? `<a href="${escapeAttr(r.details_link)}" target="_blank" style="opacity:.7;font-size:11px">XBRL source ↗</a>` : ''}
+      ${r.symbol ? `<a href="https://www.bseindia.com/stock-share-price/-/-/${escapeAttr(r.symbol)}/" target="_blank">BSE quote ↗</a>` : ''}
+    </div>
+  </div></td></tr>`;
+}
+
+function renderMergersPagination() {
+  const total = mergersState.filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / mergersState.pageSize));
+  mergersState.page = Math.min(mergersState.page, totalPages);
+  const p = mergersState.page;
+  const make = (label, target, disabled = false, active = false) =>
+    `<button ${disabled ? 'disabled style="opacity:.4;cursor:default"' : ''} ${active ? 'class="primary"' : ''} data-page="${target}">${label}</button>`;
+  const buttons = [
+    make('« First', 1, p === 1),
+    make('‹ Prev', Math.max(1, p - 1), p === 1),
+  ];
+  const start = Math.max(1, p - 2), end = Math.min(totalPages, p + 2);
+  for (let i = start; i <= end; i++) buttons.push(make(i, i, false, i === p));
+  buttons.push(make('Next ›', Math.min(totalPages, p + 1), p === totalPages));
+  buttons.push(make('Last »', totalPages, p === totalPages));
+  document.getElementById('mergersPagination').innerHTML =
+    buttons.join('') + `<span class="info">Page ${p} / ${totalPages}</span>`;
+  document.querySelectorAll('#mergersPagination button').forEach(b => {
+    b.onclick = () => { mergersState.page = +b.dataset.page; renderMergersTable(); };
+  });
+}
+
 // --- Tab switching -----------------------------------------------------
 function switchTab(name) {
   document.body.setAttribute('data-active-tab', name);
@@ -1603,6 +1980,9 @@ function switchTab(name) {
   if (name === 'pref') {
     if (!prefState.loaded) loadPrefData();
     else applyPrefFilters();
+  } else if (name === 'mergers') {
+    if (!mergersState.loaded) loadMergersData();
+    else applyMergersFilters();
   } else {
     applyFilters();
   }
@@ -1658,14 +2038,59 @@ document.querySelectorAll('[data-reset]').forEach(el => {
 });
 
 // When shared filters (search, date, symbol, minValue) change, also refresh
-// the pref tab if it's the active one.
+// the pref or mergers tab if it's the active one.
 const _origApply = applyFilters;
 applyFilters = function() {
   _origApply();
-  if (document.body.getAttribute('data-active-tab') === 'pref' && prefState.loaded) {
-    applyPrefFilters();
-  }
+  const tab = document.body.getAttribute('data-active-tab');
+  if (tab === 'pref' && prefState.loaded) applyPrefFilters();
+  if (tab === 'mergers' && mergersState.loaded) applyMergersFilters();
 };
+
+// Mergers-tab wiring (sort header clicks, page-size dropdown)
+document.querySelectorAll('#mergersTable thead th[data-sort]').forEach(th => th.addEventListener('click', () => {
+  const k = th.dataset.sort;
+  if (mergersState.sort.key === k) mergersState.sort.dir = mergersState.sort.dir === 'asc' ? 'desc' : 'asc';
+  else { mergersState.sort.key = k; mergersState.sort.dir = 'desc'; }
+  sortMergersFiltered(); renderMergersTable();
+}));
+document.getElementById('mergersPageSize').addEventListener('change', e => {
+  mergersState.pageSize = +e.target.value; mergersState.page = 1; renderMergersTable();
+});
+
+// Type + Stage chip filters
+document.getElementById('mergerTypeChips').addEventListener('click', e => {
+  if (!e.target.classList.contains('chip')) return;
+  const v = e.target.dataset.mtype;
+  if (mergersState.filters.types.has(v)) { mergersState.filters.types.delete(v); e.target.classList.remove('active'); }
+  else { mergersState.filters.types.add(v); e.target.classList.add('active'); }
+  mergersState.page = 1; applyMergersFilters();
+});
+document.getElementById('mergerStageChips').addEventListener('click', e => {
+  if (!e.target.classList.contains('chip')) return;
+  const v = e.target.dataset.mstage;
+  if (mergersState.filters.stages.has(v)) { mergersState.filters.stages.delete(v); e.target.classList.remove('active'); }
+  else { mergersState.filters.stages.add(v); e.target.classList.add('active'); }
+  mergersState.page = 1; applyMergersFilters();
+});
+
+// Reset handlers for the new mergers chip groups
+document.querySelectorAll('[data-reset]').forEach(el => {
+  if (el.dataset.reset === 'mergerType') {
+    el.addEventListener('click', () => {
+      mergersState.filters.types.clear();
+      document.querySelectorAll('#mergerTypeChips .chip').forEach(c => c.classList.remove('active'));
+      mergersState.page = 1; applyMergersFilters();
+    });
+  }
+  if (el.dataset.reset === 'mergerStage') {
+    el.addEventListener('click', () => {
+      mergersState.filters.stages.clear();
+      document.querySelectorAll('#mergerStageChips .chip').forEach(c => c.classList.remove('active'));
+      mergersState.page = 1; applyMergersFilters();
+    });
+  }
+});
 
 loadData();
 </script>
