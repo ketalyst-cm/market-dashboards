@@ -2065,14 +2065,8 @@ document.getElementById('mergersPageSize').addEventListener('change', e => {
   mergersState.pageSize = +e.target.value; mergersState.page = 1; renderMergersTable();
 });
 
-// Type + Stage chip filters
-document.getElementById('mergerTypeChips').addEventListener('click', e => {
-  if (!e.target.classList.contains('chip')) return;
-  const v = e.target.dataset.mtype;
-  if (mergersState.filters.types.has(v)) { mergersState.filters.types.delete(v); e.target.classList.remove('active'); }
-  else { mergersState.filters.types.add(v); e.target.classList.add('active'); }
-  mergersState.page = 1; applyMergersFilters();
-});
+// Stage chip filters (the Type filter was removed when we restricted
+// this tab to Demergers only — `mergerTypeChips` no longer exists).
 document.getElementById('mergerStageChips').addEventListener('click', e => {
   if (!e.target.classList.contains('chip')) return;
   const v = e.target.dataset.mstage;
@@ -2081,15 +2075,8 @@ document.getElementById('mergerStageChips').addEventListener('click', e => {
   mergersState.page = 1; applyMergersFilters();
 });
 
-// Reset handlers for the new mergers chip groups
+// Reset handler for the mergers Stage chip group
 document.querySelectorAll('[data-reset]').forEach(el => {
-  if (el.dataset.reset === 'mergerType') {
-    el.addEventListener('click', () => {
-      mergersState.filters.types.clear();
-      document.querySelectorAll('#mergerTypeChips .chip').forEach(c => c.classList.remove('active'));
-      mergersState.page = 1; applyMergersFilters();
-    });
-  }
   if (el.dataset.reset === 'mergerStage') {
     el.addEventListener('click', () => {
       mergersState.filters.stages.clear();
