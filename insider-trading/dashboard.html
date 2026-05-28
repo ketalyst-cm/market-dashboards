@@ -11,7 +11,7 @@
 <meta http-equiv="Expires" content="0">
 <!-- publish_to_web.py rewrites this on every push; the JS polls
      /version.txt and prompts the user to refresh if it sees a newer build. -->
-<meta name="build-time" content="2026-05-27T20:09:47">
+<meta name="build-time" content="2026-05-28T19:01:10">
 <title>Insider Trading Dashboard — NSE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2132,7 +2132,7 @@ document.querySelectorAll('[data-reset]').forEach(el => {
 // they're on; poll version.txt every 60s and show a refresh prompt if
 // a newer build has been published.
 const _buildTime = document.querySelector('meta[name="build-time"]')?.content || '';
-const _buildLabel = (_buildTime && _buildTime !== '2026-05-27T20:09:47') ? _buildTime : 'local';
+const _buildLabel = (_buildTime && _buildTime !== '2026-05-28T19:01:10') ? _buildTime : 'local';
 
 // Add the footer
 {
