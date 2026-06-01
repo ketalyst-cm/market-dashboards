@@ -11,8 +11,8 @@
 <meta http-equiv="Expires" content="0">
 <!-- publish_to_web.py rewrites this on every push; the JS polls
      /version.txt and prompts the user to refresh if it sees a newer build. -->
-<meta name="build-time" content="2026-06-01T11:38:55">
-<title>Insider Trading Dashboard — NSE</title>
+<meta name="build-time" content="2026-06-01T23:23:39">
+<title>Catalyst — Indian Market Special Situations</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -608,7 +608,7 @@
   <main class="main">
     <div class="topbar">
       <div>
-        <h1>Insider Trading Dashboard</h1>
+        <h1>Catalyst</h1>
         <div class="subtitle" id="subtitle">Loading…</div>
       </div>
       <div class="topbar-actions">
@@ -623,6 +623,8 @@
       <div class="tab active" data-tab="insider">Insider Trading <span class="count" id="tabCountInsider"></span></div>
       <div class="tab" data-tab="pref">Preferential Issues <span class="count" id="tabCountPref"></span></div>
       <div class="tab" data-tab="mergers">Demergers / Spinoffs <span class="count" id="tabCountMergers"></span></div>
+      <div class="tab" data-tab="openoffer">Open Offers <span class="count" id="tabCountOpenOffer"></span></div>
+      <div class="tab" data-tab="buyback">Buy Backs <span class="count" id="tabCountBuyback"></span></div>
     </div>
 
     <!-- Insider tab content -->
@@ -787,6 +789,60 @@
         <div class="pagination" id="mergersPagination"></div>
       </div>
     </div><!-- /mergers tab -->
+
+    <!-- Open Offers tab content -->
+    <div class="tab-content" data-tab-content="openoffer">
+      <div class="kpis" id="openofferKpis"></div>
+      <div class="card table-card">
+        <div class="table-toolbar">
+          <div class="count" id="openofferTableCount">—</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;color:var(--text-muted)">Rows per page</span>
+            <select id="openofferPageSize" style="width:auto"><option>25</option><option selected>50</option><option>100</option><option>250</option></select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="openofferTable">
+            <thead><tr>
+              <th data-sort="submission_date">Date</th>
+              <th data-sort="symbol">Scrip</th>
+              <th data-sort="company">Company</th>
+              <th data-sort="announcement_subject">Subject</th>
+              <th data-sort="announcement_description">Description</th>
+            </tr></thead>
+            <tbody id="openofferTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="openofferPagination"></div>
+      </div>
+    </div><!-- /openoffer tab -->
+
+    <!-- Buy Backs tab content -->
+    <div class="tab-content" data-tab-content="buyback">
+      <div class="kpis" id="buybackKpis"></div>
+      <div class="card table-card">
+        <div class="table-toolbar">
+          <div class="count" id="buybackTableCount">—</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;color:var(--text-muted)">Rows per page</span>
+            <select id="buybackPageSize" style="width:auto"><option>25</option><option selected>50</option><option>100</option><option>250</option></select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="buybackTable">
+            <thead><tr>
+              <th data-sort="submission_date">Date</th>
+              <th data-sort="symbol">Scrip</th>
+              <th data-sort="company">Company</th>
+              <th data-sort="announcement_subject">Subject</th>
+              <th data-sort="announcement_description">Description</th>
+            </tr></thead>
+            <tbody id="buybackTableBody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="buybackPagination"></div>
+      </div>
+    </div><!-- /buyback tab -->
   </main>
 </div>
 
@@ -2017,17 +2073,235 @@ function renderMergersPagination() {
   });
 }
 
+// =====================================================================
+// GENERIC SIMPLE-BSE-ANNOUNCEMENT TAB (reused for Open Offers + Buy Backs)
+// Both tabs share identical layout — only the data file and the IDs
+// differ. createSimpleBseTab() returns {state, load, apply, render, tabBadgeId}.
+// =====================================================================
+function createSimpleBseTab(config) {
+  // config: { key, dataFile, badgeId, kpiHostId, tableId, tableBodyId,
+  //           tableCountId, paginationId, pageSizeId, emptyLabel }
+  const state = {
+    rows: [], filtered: [], page: 1, pageSize: 50,
+    sort: { key: 'submission_date', dir: 'desc' },
+    expandedRowId: null,
+    loaded: false,
+  };
+
+  async function load() {
+    try {
+      const r = await fetch(`data/${config.dataFile}?t=` + Date.now());
+      if (!r.ok) throw new Error(r.status);
+      const j = await r.json();
+      state.rows = j.rows || [];
+      state.loaded = true;
+      document.getElementById(config.badgeId).textContent = state.rows.length;
+      apply();
+    } catch (e) {
+      state.loaded = true;
+      document.getElementById(config.tableBodyId).innerHTML =
+        `<tr><td colspan="5"><div class="empty"><h3>No ${config.emptyLabel} data yet</h3>` +
+        `<p>Run <code>py Scripts\\fetch_bse_announcements.py --mode ${config.key}</code> to fetch.</p></div></td></tr>`;
+    }
+  }
+
+  function apply() {
+    const sf = state_GLOBAL_FILTERS();
+    const search = sf.search.toLowerCase();
+    const dFrom = sf.dateFrom ? new Date(sf.dateFrom + 'T00:00:00') : null;
+    const dTo   = sf.dateTo   ? new Date(sf.dateTo   + 'T23:59:59') : null;
+    state.filtered = state.rows.filter(r => {
+      if (search) {
+        const hay = `${r.symbol||''} ${r.company||''} ${r.announcement_subject||''} ${r.announcement_description||''}`.toLowerCase();
+        if (!hay.includes(search)) return false;
+      }
+      if (sf.symbols.size && !sf.symbols.has(r.symbol)) return false;
+      if (dFrom || dTo) {
+        const d = parseDate(r.submission_date || r.system_date);
+        if (!d) return false;
+        if (dFrom && d < dFrom) return false;
+        if (dTo && d > dTo) return false;
+      }
+      return true;
+    });
+    sortFiltered();
+    render();
+  }
+
+  function sortFiltered() {
+    const { key, dir } = state.sort;
+    const mul = dir === 'asc' ? 1 : -1;
+    state.filtered.sort((a, b) => {
+      let av = a[key], bv = b[key];
+      if (key.endsWith('_date')) {
+        av = parseDate(a[key])?.getTime() || 0;
+        bv = parseDate(b[key])?.getTime() || 0;
+      }
+      if (typeof av === 'string') av = av.toLowerCase();
+      if (typeof bv === 'string') bv = bv.toLowerCase();
+      if (av == null || av === '') return 1;
+      if (bv == null || bv === '') return -1;
+      if (av < bv) return -1 * mul;
+      if (av > bv) return  1 * mul;
+      return 0;
+    });
+  }
+
+  function render() {
+    renderKpis();
+    renderTable();
+  }
+
+  function renderKpis() {
+    const rows = state.filtered;
+    const companies = new Set();
+    let mostRecent = '';
+    for (const r of rows) {
+      if (r.symbol || r.company) companies.add(r.symbol || r.company);
+      if ((r.submission_date || '') > mostRecent) mostRecent = r.submission_date || '';
+    }
+    document.getElementById(config.kpiHostId).innerHTML = `
+      <div class="kpi"><div class="label">Announcements</div><div class="value">${fmtInt(rows.length)}</div><div class="delta">${companies.size} unique companies</div></div>
+      <div class="kpi"><div class="label">Most recent</div><div class="value" style="font-size:13px">${escapeHtml((mostRecent || '').slice(0,16))}</div><div class="delta">BSE-published</div></div>
+    `;
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById(config.tableBodyId);
+    const start = (state.page - 1) * state.pageSize;
+    const slice = state.filtered.slice(start, start + state.pageSize);
+    document.getElementById(config.tableCountId).textContent =
+      `${fmtInt(state.filtered.length)} matching announcements  •  showing ${fmtInt(slice.length)}`;
+    if (!slice.length) {
+      tbody.innerHTML = '<tr><td colspan="5"><div class="empty"><h3>No matches</h3></div></td></tr>';
+      document.getElementById(config.paginationId).innerHTML = '';
+      return;
+    }
+    tbody.innerHTML = slice.map(r => `
+      <tr data-id="${r.id}" class="${state.expandedRowId === r.id ? 'expanded' : ''}">
+        <td class="center">${escapeHtml(r.submission_date || r.system_date || '')}</td>
+        <td class="center"><span class="symbol-cell" data-symbol="${escapeAttr(r.symbol || '')}">${escapeHtml(r.symbol || '')}</span></td>
+        <td class="wrap">${escapeHtml(r.company || '')}</td>
+        <td class="wrap" style="font-size:12px">${escapeHtml((r.announcement_subject || '').slice(0,100))}</td>
+        <td class="wrap" style="font-size:12px">${r.announcement_description ? `<span title="${escapeAttr(r.announcement_description)}">${escapeHtml(r.announcement_description.length > 110 ? r.announcement_description.slice(0,110) + '…' : r.announcement_description)}</span>` : ''}</td>
+      </tr>
+      ${state.expandedRowId === r.id ? renderDetailPane(r) : ''}
+    `).join('');
+
+    document.querySelectorAll(`#${config.tableId} thead th`).forEach(th => {
+      const k = th.dataset.sort;
+      th.innerHTML = th.innerHTML.replace(/ ?[▲▼]$/, '');
+      if (k === state.sort.key) th.innerHTML += ' ' + (state.sort.dir === 'asc' ? '▲' : '▼');
+    });
+    tbody.querySelectorAll('tr[data-id]').forEach(tr => {
+      tr.addEventListener('click', e => {
+        if (e.target.classList.contains('symbol-cell')) {
+          state_GLOBAL_FILTERS().symbols = new Set([e.target.dataset.symbol]);
+          buildFilterOptions();
+          state.page = 1; apply();
+          return;
+        }
+        const id = tr.dataset.id;
+        state.expandedRowId = state.expandedRowId === id ? null : id;
+        renderTable();
+      });
+    });
+    renderPagination();
+  }
+
+  function renderDetailPane(r) {
+    const fields = [];
+    for (const [k, v] of [
+      ['BSE Scrip', r.bse_scrip_code || r.symbol],
+      ['Company', r.company],
+      ['Submission date', r.submission_date],
+      ['Subject', r.announcement_subject],
+      ['Description', r.announcement_description],
+    ]) {
+      if (v) fields.push(`<div class="field"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>`);
+    }
+    if (r.details && typeof r.details === 'object') {
+      const seen = new Set(['bse scrip','company','submission date','subject','description']);
+      for (const [k, v] of Object.entries(r.details)) {
+        if (!v || seen.has(k.toLowerCase())) continue;
+        fields.push(`<div class="field"><span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(v)}</span></div>`);
+      }
+    }
+    const pdfUrl = r.attachment_url || (r.raw && r.raw.attachment_url);
+    return `<tr class="detail-row"><td colspan="5"><div class="detail-pane">
+      <div class="detail-grid">${fields.join('')}</div>
+      <div class="detail-actions">
+        ${pdfUrl ? `<a href="${escapeAttr(pdfUrl)}" target="_blank">📄 Open Filing PDF ↗</a>` : ''}
+        ${r.details_link && r.details_link !== pdfUrl ? `<a href="${escapeAttr(r.details_link)}" target="_blank" style="opacity:.7;font-size:11px">XBRL source ↗</a>` : ''}
+        ${r.symbol ? `<a href="https://www.bseindia.com/stock-share-price/-/-/${escapeAttr(r.symbol)}/" target="_blank">BSE quote ↗</a>` : ''}
+      </div>
+    </div></td></tr>`;
+  }
+
+  function renderPagination() {
+    const total = state.filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+    state.page = Math.min(state.page, totalPages);
+    const p = state.page;
+    const make = (label, target, disabled = false, active = false) =>
+      `<button ${disabled ? 'disabled style="opacity:.4;cursor:default"' : ''} ${active ? 'class="primary"' : ''} data-page="${target}">${label}</button>`;
+    const buttons = [make('« First', 1, p === 1), make('‹ Prev', Math.max(1, p - 1), p === 1)];
+    const start = Math.max(1, p - 2), end = Math.min(totalPages, p + 2);
+    for (let i = start; i <= end; i++) buttons.push(make(i, i, false, i === p));
+    buttons.push(make('Next ›', Math.min(totalPages, p + 1), p === totalPages));
+    buttons.push(make('Last »', totalPages, p === totalPages));
+    document.getElementById(config.paginationId).innerHTML = buttons.join('') + `<span class="info">Page ${p} / ${totalPages}</span>`;
+    document.querySelectorAll(`#${config.paginationId} button`).forEach(b => {
+      b.onclick = () => { state.page = +b.dataset.page; renderTable(); };
+    });
+  }
+
+  // Wire up the sort header clicks + page size dropdown ONCE
+  document.querySelectorAll(`#${config.tableId} thead th[data-sort]`).forEach(th => th.addEventListener('click', () => {
+    const k = th.dataset.sort;
+    if (state.sort.key === k) state.sort.dir = state.sort.dir === 'asc' ? 'desc' : 'asc';
+    else { state.sort.key = k; state.sort.dir = 'desc'; }
+    sortFiltered(); renderTable();
+  }));
+  document.getElementById(config.pageSizeId).addEventListener('change', e => {
+    state.pageSize = +e.target.value; state.page = 1; renderTable();
+  });
+
+  return { state, load, apply };
+}
+
+// The factory uses the shared insider-tab filter state for search/date/symbol
+function state_GLOBAL_FILTERS() { return state.filters; }
+
+const openOfferTab = createSimpleBseTab({
+  key: 'open_offer', dataFile: 'open_offer_data.json',
+  badgeId: 'tabCountOpenOffer', kpiHostId: 'openofferKpis',
+  tableId: 'openofferTable', tableBodyId: 'openofferTableBody',
+  tableCountId: 'openofferTableCount', paginationId: 'openofferPagination',
+  pageSizeId: 'openofferPageSize', emptyLabel: 'open offer',
+});
+
+const buybackTab = createSimpleBseTab({
+  key: 'buyback', dataFile: 'buyback_data.json',
+  badgeId: 'tabCountBuyback', kpiHostId: 'buybackKpis',
+  tableId: 'buybackTable', tableBodyId: 'buybackTableBody',
+  tableCountId: 'buybackTableCount', paginationId: 'buybackPagination',
+  pageSizeId: 'buybackPageSize', emptyLabel: 'buy back',
+});
+
 // --- Tab switching -----------------------------------------------------
 function switchTab(name) {
   document.body.setAttribute('data-active-tab', name);
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.dataset.tabContent === name));
   if (name === 'pref') {
-    if (!prefState.loaded) loadPrefData();
-    else applyPrefFilters();
+    if (!prefState.loaded) loadPrefData(); else applyPrefFilters();
   } else if (name === 'mergers') {
-    if (!mergersState.loaded) loadMergersData();
-    else applyMergersFilters();
+    if (!mergersState.loaded) loadMergersData(); else applyMergersFilters();
+  } else if (name === 'openoffer') {
+    if (!openOfferTab.state.loaded) openOfferTab.load(); else openOfferTab.apply();
+  } else if (name === 'buyback') {
+    if (!buybackTab.state.loaded) buybackTab.load(); else buybackTab.apply();
   } else {
     applyFilters();
   }
@@ -2088,8 +2362,10 @@ const _origApply = applyFilters;
 applyFilters = function() {
   _origApply();
   const tab = document.body.getAttribute('data-active-tab');
-  if (tab === 'pref' && prefState.loaded) applyPrefFilters();
+  if (tab === 'pref'    && prefState.loaded)    applyPrefFilters();
   if (tab === 'mergers' && mergersState.loaded) applyMergersFilters();
+  if (tab === 'openoffer' && openOfferTab.state.loaded) openOfferTab.apply();
+  if (tab === 'buyback'   && buybackTab.state.loaded)   buybackTab.apply();
 };
 
 // Mergers-tab wiring (sort header clicks, page-size dropdown)
@@ -2132,7 +2408,7 @@ document.querySelectorAll('[data-reset]').forEach(el => {
 // they're on; poll version.txt every 60s and show a refresh prompt if
 // a newer build has been published.
 const _buildTime = document.querySelector('meta[name="build-time"]')?.content || '';
-const _buildLabel = (_buildTime && _buildTime !== '2026-06-01T11:38:55') ? _buildTime : 'local';
+const _buildLabel = (_buildTime && _buildTime !== '2026-06-01T23:23:39') ? _buildTime : 'local';
 
 // Add the footer
 {
