@@ -11,7 +11,7 @@
 <meta http-equiv="Expires" content="0">
 <!-- publish_to_web.py rewrites this on every push; the JS polls
      /version.txt and prompts the user to refresh if it sees a newer build. -->
-<meta name="build-time" content="2026-06-01T23:23:39">
+<meta name="build-time" content="2026-06-02T10:37:28">
 <title>Catalyst — Indian Market Special Situations</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -137,6 +137,35 @@
   .chip.buy.active { background: var(--buy); border-color: var(--buy); }
   .chip.sell.active { background: var(--sell); border-color: var(--sell); }
   .chip.other.active { background: var(--other); border-color: var(--other); }
+  .chip.fav.active { background: var(--other); border-color: var(--other); color: #1b1f2a; }
+
+  /* Favorites — star button on each row + the toolbar above the table */
+  .fav-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 16px; color: var(--text-faint);
+    padding: 2px 6px; line-height: 1; border-radius: 4px;
+    transition: color .15s, transform .15s;
+  }
+  .fav-btn:hover { color: var(--other); background: var(--surface-2); }
+  .fav-btn.active { color: var(--other); }
+  .fav-btn.active:hover { transform: scale(1.1); }
+  td.fav-cell { width: 32px; padding: 6px 4px !important; text-align: center; }
+  th.fav-cell { width: 32px; padding: 8px 4px; }
+
+  .fav-bar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px; padding: 8px 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .fav-bar .fav-count { font-size: 12px; color: var(--text-muted); margin-left: 6px; }
+  .fav-bar .spacer { flex: 1; }
+  .fav-bar .icon-btn {
+    background: var(--surface-2); border: 1px solid var(--border); cursor: pointer;
+    padding: 5px 10px; border-radius: 6px; font-size: 12px; color: var(--text);
+    transition: all .15s;
+  }
+  .fav-bar .icon-btn:hover { background: var(--primary-soft); border-color: var(--primary); }
 
   .row { display: flex; gap: 8px; }
   .row > * { flex: 1; }
@@ -629,6 +658,14 @@
 
     <!-- Insider tab content -->
     <div class="tab-content active" data-tab-content="insider">
+    <!-- Favorites toolbar (toggle + count + export/import) -->
+    <div class="fav-bar">
+      <button class="chip fav" id="favToggle_insider">☆ Show favorites only</button>
+      <span class="fav-count" id="favCount_insider">0 favorites</span>
+      <span class="spacer"></span>
+      <button class="icon-btn" data-fav-action="export" title="Download your favorites as JSON">⬇ Export favorites</button>
+      <button class="icon-btn" data-fav-action="import" title="Load favorites from a JSON file">⬆ Import favorites</button>
+    </div>
     <!-- KPIs -->
     <div class="kpis" id="kpis"></div>
 
@@ -685,6 +722,7 @@
         <table id="dataTable">
           <thead>
             <tr>
+              <th class="fav-cell" title="Star to save">★</th>
               <th data-sort="broadcast_date">Date</th>
               <th data-sort="symbol">Symbol</th>
               <th data-sort="company">Company</th>
@@ -706,6 +744,13 @@
 
     <!-- Preferential Issues tab content -->
     <div class="tab-content" data-tab-content="pref">
+      <div class="fav-bar">
+        <button class="chip fav" id="favToggle_pref">☆ Show favorites only</button>
+        <span class="fav-count" id="favCount_pref">0 favorites</span>
+        <span class="spacer"></span>
+        <button class="icon-btn" data-fav-action="export" title="Download your favorites as JSON">⬇ Export favorites</button>
+        <button class="icon-btn" data-fav-action="import" title="Load favorites from a JSON file">⬆ Import favorites</button>
+      </div>
       <div class="kpis" id="prefKpis"></div>
 
       <div class="chart-grid">
@@ -736,6 +781,7 @@
           <table id="prefTable">
             <thead>
               <tr>
+                <th class="fav-cell" title="Star to save">★</th>
                 <th data-sort="board_res_date">Date</th>
                 <th data-sort="stage">Stage</th>
                 <th data-sort="symbol">Symbol</th>
@@ -757,6 +803,13 @@
 
     <!-- Mergers / Demergers tab content -->
     <div class="tab-content" data-tab-content="mergers">
+      <div class="fav-bar">
+        <button class="chip fav" id="favToggle_mergers">☆ Show favorites only</button>
+        <span class="fav-count" id="favCount_mergers">0 favorites</span>
+        <span class="spacer"></span>
+        <button class="icon-btn" data-fav-action="export" title="Download your favorites as JSON">⬇ Export favorites</button>
+        <button class="icon-btn" data-fav-action="import" title="Load favorites from a JSON file">⬆ Import favorites</button>
+      </div>
       <div class="kpis" id="mergersKpis"></div>
 
       <div class="card table-card">
@@ -776,6 +829,7 @@
           <table id="mergersTable">
             <thead>
               <tr>
+                <th class="fav-cell" title="Star to save">★</th>
                 <th data-sort="submission_date">Date</th>
                 <th data-sort="symbol">Scrip</th>
                 <th data-sort="company">Company</th>
@@ -792,6 +846,13 @@
 
     <!-- Open Offers tab content -->
     <div class="tab-content" data-tab-content="openoffer">
+      <div class="fav-bar">
+        <button class="chip fav" id="favToggle_openoffer">☆ Show favorites only</button>
+        <span class="fav-count" id="favCount_openoffer">0 favorites</span>
+        <span class="spacer"></span>
+        <button class="icon-btn" data-fav-action="export" title="Download your favorites as JSON">⬇ Export favorites</button>
+        <button class="icon-btn" data-fav-action="import" title="Load favorites from a JSON file">⬆ Import favorites</button>
+      </div>
       <div class="kpis" id="openofferKpis"></div>
       <div class="card table-card">
         <div class="table-toolbar">
@@ -804,6 +865,7 @@
         <div class="table-wrap">
           <table id="openofferTable">
             <thead><tr>
+              <th class="fav-cell" title="Star to save">★</th>
               <th data-sort="submission_date">Date</th>
               <th data-sort="symbol">Scrip</th>
               <th data-sort="company">Company</th>
@@ -819,6 +881,13 @@
 
     <!-- Buy Backs tab content -->
     <div class="tab-content" data-tab-content="buyback">
+      <div class="fav-bar">
+        <button class="chip fav" id="favToggle_buyback">☆ Show favorites only</button>
+        <span class="fav-count" id="favCount_buyback">0 favorites</span>
+        <span class="spacer"></span>
+        <button class="icon-btn" data-fav-action="export" title="Download your favorites as JSON">⬇ Export favorites</button>
+        <button class="icon-btn" data-fav-action="import" title="Load favorites from a JSON file">⬆ Import favorites</button>
+      </div>
       <div class="kpis" id="buybackKpis"></div>
       <div class="card table-card">
         <div class="table-toolbar">
@@ -831,6 +900,7 @@
         <div class="table-wrap">
           <table id="buybackTable">
             <thead><tr>
+              <th class="fav-cell" title="Star to save">★</th>
               <th data-sort="submission_date">Date</th>
               <th data-sort="symbol">Scrip</th>
               <th data-sort="company">Company</th>
@@ -866,6 +936,7 @@ const state = {
     symbols: new Set(),
     symbolSearch: '',
     minValue: null,
+    favOnly: false,
   },
   charts: {},
   expandedRowId: null,
@@ -874,6 +945,125 @@ const state = {
 
 const persisted = JSON.parse(localStorage.getItem('insiderDashV1') || '{}');
 if (persisted.theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+
+// =====================================================================
+// FAVORITES — per-browser starring of filings, persisted in localStorage.
+// Friends can mark rows they want to revisit. The Export/Import JSON
+// buttons let them carry their list across browsers/devices.
+// =====================================================================
+const FAV_KEY  = 'catalystFavoritesV1';
+const FAV_TABS = ['insider', 'pref', 'mergers', 'openoffer', 'buyback'];
+
+function _loadFavorites() {
+  let raw;
+  try { raw = JSON.parse(localStorage.getItem(FAV_KEY) || '{}'); } catch { raw = {}; }
+  const out = {};
+  for (const t of FAV_TABS) out[t] = new Set(Array.isArray(raw[t]) ? raw[t].map(String) : []);
+  return out;
+}
+const favorites = _loadFavorites();
+
+function _saveFavorites() {
+  const obj = {};
+  for (const t of FAV_TABS) obj[t] = [...favorites[t]];
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(obj)); } catch (e) { console.warn('favorites save failed', e); }
+}
+function isFav(tab, id)  { return favorites[tab] && favorites[tab].has(String(id)); }
+function toggleFav(tab, id) {
+  const s = favorites[tab]; const k = String(id);
+  if (s.has(k)) s.delete(k); else s.add(k);
+  _saveFavorites();
+  return s.has(k);
+}
+// Used by every renderTable to render the leading <td>.
+function favCellHtml(tab, id) {
+  const on = isFav(tab, id);
+  return `<td class="fav-cell"><button class="fav-btn ${on ? 'active' : ''}" data-fav-tab="${tab}" data-fav-id="${(String(id) || '').replace(/"/g, '&quot;')}" title="${on ? 'Remove from favorites' : 'Add to favorites'}">${on ? '★' : '☆'}</button></td>`;
+}
+
+// Global star-click handler in CAPTURE phase, so it beats the bubble-phase
+// row click that would otherwise expand/collapse the row.
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.fav-btn');
+  if (!btn) return;
+  e.stopPropagation();
+  e.preventDefault();
+  const tab = btn.dataset.favTab;
+  const id  = btn.dataset.favId;
+  const on  = toggleFav(tab, id);
+  btn.classList.toggle('active', on);
+  btn.textContent = on ? '★' : '☆';
+  btn.title = on ? 'Remove from favorites' : 'Add to favorites';
+  _updateFavCounts();
+  _refreshActiveTabIfFavOnly();
+}, true);
+
+function _refreshActiveTabIfFavOnly() {
+  const tab = document.body.getAttribute('data-active-tab');
+  // Only re-run filtering when the active tab is in fav-only mode (the row
+  // composition is changing). Otherwise just leave the visual flip in place.
+  if (tab === 'insider'   && state.filters.favOnly)        applyFilters();
+  else if (tab === 'pref'      && prefState.filters.favOnly)    applyPrefFilters();
+  else if (tab === 'mergers'   && mergersState.filters.favOnly) applyMergersFilters();
+  else if (tab === 'openoffer' && openOfferTab.state.favOnly)   openOfferTab.apply();
+  else if (tab === 'buyback'   && buybackTab.state.favOnly)     buybackTab.apply();
+}
+
+function _updateFavCounts() {
+  for (const t of FAV_TABS) {
+    const el = document.getElementById('favCount_' + t);
+    if (el) el.textContent = `${favorites[t].size} favorite${favorites[t].size === 1 ? '' : 's'}`;
+  }
+}
+
+// Download the favorites store as a JSON file the user can keep, share,
+// or import into another browser.
+function exportFavorites() {
+  const obj = {};
+  for (const t of FAV_TABS) obj[t] = [...favorites[t]];
+  const payload = {
+    _format: 'catalyst-favorites',
+    _version: 1,
+    exported_at: new Date().toISOString(),
+    favorites: obj,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `catalyst-favorites-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+// Read a user-selected JSON file and MERGE its favorites with the current
+// set (never destructive — existing favs are preserved). Accepts both the
+// wrapped { favorites: {...} } shape from exportFavorites and the bare
+// { tab: [...] } shape.
+function importFavorites(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const j   = JSON.parse(reader.result);
+      const src = (j && j.favorites && typeof j.favorites === 'object') ? j.favorites : j;
+      let added = 0;
+      for (const t of FAV_TABS) {
+        if (Array.isArray(src[t])) {
+          for (const id of src[t]) {
+            const k = String(id);
+            if (!favorites[t].has(k)) { favorites[t].add(k); added++; }
+          }
+        }
+      }
+      _saveFavorites();
+      _updateFavCounts();
+      _refreshActiveTabIfFavOnly();
+      alert(`Imported ${added} new favorite${added === 1 ? '' : 's'}. Your existing favorites were kept.`);
+    } catch (e) {
+      alert('Could not parse favorites file — invalid JSON?');
+    }
+  };
+  reader.readAsText(file);
+}
 
 // ---------------------------------------------------------------------
 // Helpers
@@ -929,7 +1119,7 @@ async function loadData() {
   } catch (e) {
     document.getElementById('subtitle').textContent = 'No data yet — run fetch_insider.py';
     document.getElementById('tableBody').innerHTML =
-      '<tr><td colspan="10"><div class="empty"><h3>No data loaded</h3>' +
+      '<tr><td colspan="11"><div class="empty"><h3>No data loaded</h3>' +
       '<p>Run <code>run_historical.bat</code> to do the initial 6-month backfill, ' +
       'then <code>run_dashboard.bat</code>.</p></div></td></tr>';
   }
@@ -1008,6 +1198,7 @@ function applyFilters() {
   const dTo = f.dateTo ? new Date(f.dateTo + 'T23:59:59') : null;
 
   state.filtered = state.rows.filter(r => {
+    if (f.favOnly && !isFav('insider', r.id)) return false;
     if (search) {
       const hay = `${r.symbol || ''} ${r.company || ''} ${r.acquirer_name || ''} ${r.detail_acquirer || ''}`.toLowerCase();
       if (!hay.includes(search)) return false;
@@ -1094,13 +1285,14 @@ function renderTable() {
     `${fmtInt(state.filtered.length)} matching filings  •  showing ${fmtInt(slice.length)}`;
 
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="10"><div class="empty"><h3>No matches</h3><p>Adjust filters to see results.</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11"><div class="empty"><h3>No matches</h3><p>Adjust filters to see results.</p></div></td></tr>';
     document.getElementById('pagination').innerHTML = '';
     return;
   }
 
   tbody.innerHTML = slice.map(r => `
     <tr data-id="${r.id}" class="${state.expandedRowId === r.id ? 'expanded' : ''}">
+      ${favCellHtml('insider', r.id)}
       <td class="center">${escapeHtml(r.broadcast_date || r.intimation_date || '')}</td>
       <td class="center"><span class="symbol-cell" data-symbol="${escapeAttr(r.symbol || '')}">${escapeHtml(r.symbol || '')}</span></td>
       <td class="wrap">${escapeHtml(r.company || '')}</td>
@@ -1170,7 +1362,7 @@ function renderDetailPane(r) {
     }
   }
 
-  return `<tr class="detail-row"><td colspan="10"><div class="detail-pane">
+  return `<tr class="detail-row"><td colspan="11"><div class="detail-pane">
     <div class="detail-grid">${fields.join('')}</div>
     <div class="detail-actions">
       ${r.details_link ? `<a href="${escapeAttr(r.details_link)}" target="_blank">Open NSE Details page ↗</a>` : ''}
@@ -1489,6 +1681,7 @@ const prefState = {
     allottees: new Set(),
     symbols: new Set(),
     minValue: null,
+    favOnly: false,
   },
   charts: {},
   expandedRowId: null,
@@ -1517,7 +1710,7 @@ async function loadPrefData() {
   } catch (e) {
     prefState.loaded = true;  // don't keep retrying
     document.getElementById('prefTableBody').innerHTML =
-      '<tr><td colspan="10"><div class="empty"><h3>No preferential data yet</h3>' +
+      '<tr><td colspan="11"><div class="empty"><h3>No preferential data yet</h3>' +
       '<p>Run <code>run_preferential.bat</code> to fetch the data.</p></div></td></tr>';
   }
 }
@@ -1542,6 +1735,7 @@ function applyPrefFilters() {
   const dTo = sf.dateTo ? new Date(sf.dateTo + 'T23:59:59') : null;
 
   prefState.filtered = prefState.rows.filter(r => {
+    if (f.favOnly && !isFav('pref', r.id)) return false;
     if (search) {
       const hay = `${r.symbol || ''} ${r.company || ''} ${r.allottee_name || ''} ${r.allottee_category || ''}`.toLowerCase();
       if (!hay.includes(search)) return false;
@@ -1622,7 +1816,7 @@ function renderPrefTable() {
     `${fmtInt(prefState.filtered.length)} matching filings  •  showing ${fmtInt(slice.length)}`;
 
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="10"><div class="empty"><h3>No matches</h3><p>Adjust filters or load data first.</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11"><div class="empty"><h3>No matches</h3><p>Adjust filters or load data first.</p></div></td></tr>';
     document.getElementById('prefPagination').innerHTML = '';
     return;
   }
@@ -1631,6 +1825,7 @@ function renderPrefTable() {
 
   tbody.innerHTML = slice.map(r => `
     <tr data-id="${r.id}" class="${prefState.expandedRowId === r.id ? 'expanded' : ''}">
+      ${favCellHtml('pref', r.id)}
       <td class="center">${escapeHtml(r.board_res_date || r.system_date || '')}</td>
       <td class="center"><span class="stage-pill ${r.stage || ''}">${escapeHtml(r.stage || '')}</span></td>
       <td class="center"><span class="symbol-cell" data-symbol="${escapeAttr(r.symbol || '')}">${escapeHtml(r.symbol || '')}</span></td>
@@ -1709,7 +1904,7 @@ function renderPrefDetailPane(r) {
   // to that.
   const pdfUrl = r.attachment_url || (r.raw && r.raw.attachment_url);
   const checklistUrl = (r.raw && r.raw.checklist_zip_file_name) || r.checklist_url;
-  return `<tr class="detail-row"><td colspan="10"><div class="detail-pane">
+  return `<tr class="detail-row"><td colspan="11"><div class="detail-pane">
     <div class="detail-grid">${fields.join('')}</div>
     <div class="detail-actions">
       ${pdfUrl ? `<a href="${escapeAttr(pdfUrl)}" target="_blank">📄 Open Filing PDF ↗</a>` : ''}
@@ -1802,6 +1997,7 @@ const mergersState = {
   filters: {
     types: new Set(),
     stages: new Set(),
+    favOnly: false,
   },
   charts: {},
   expandedRowId: null,
@@ -1883,7 +2079,7 @@ async function loadMergersData() {
   } catch (e) {
     mergersState.loaded = true;
     document.getElementById('mergersTableBody').innerHTML =
-      '<tr><td colspan="5"><div class="empty"><h3>No mergers data yet</h3>' +
+      '<tr><td colspan="6"><div class="empty"><h3>No mergers data yet</h3>' +
       '<p>Run <code>py Scripts\\fetch_bse_announcements.py --mode mergers</code> ' +
       'to fetch the BSE Scheme-of-Arrangement announcements.</p></div></td></tr>';
   }
@@ -1897,6 +2093,7 @@ function applyMergersFilters() {
   const dTo = sf.dateTo ? new Date(sf.dateTo + 'T23:59:59') : null;
 
   mergersState.filtered = mergersState.rows.filter(r => {
+    if (mf.favOnly && !isFav('mergers', r.id)) return false;
     if (search) {
       const hay = `${r.symbol || ''} ${r.company || ''} ${r.announcement_subject || ''} ${r.announcement_description || ''}`.toLowerCase();
       if (!hay.includes(search)) return false;
@@ -1970,13 +2167,14 @@ function renderMergersTable() {
     `${fmtInt(mergersState.filtered.length)} matching announcements  •  showing ${fmtInt(slice.length)}`;
 
   if (!slice.length) {
-    tbody.innerHTML = '<tr><td colspan="5"><div class="empty"><h3>No matches</h3><p>Adjust filters or load data first.</p></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><h3>No matches</h3><p>Adjust filters or load data first.</p></div></td></tr>';
     document.getElementById('mergersPagination').innerHTML = '';
     return;
   }
 
   tbody.innerHTML = slice.map(r => `
     <tr data-id="${r.id}" class="${mergersState.expandedRowId === r.id ? 'expanded' : ''}">
+      ${favCellHtml('mergers', r.id)}
       <td class="center">${escapeHtml(r.submission_date || r.system_date || '')}</td>
       <td class="center"><span class="symbol-cell" data-symbol="${escapeAttr(r.symbol || '')}">${escapeHtml(r.symbol || '')}</span></td>
       <td class="wrap">${escapeHtml(r.company || '')}</td>
@@ -2039,7 +2237,7 @@ function renderMergersDetailPane(r) {
   const isNse = (r.raw && r.raw._source) === 'nse-scheme';
   const pdfUrl = r.attachment_url || (r.raw && r.raw.attachment_url);
   const zipLabel = isNse ? '📦 Scheme Documents ZIP ↗' : '📄 Open Filing PDF ↗';
-  return `<tr class="detail-row"><td colspan="5"><div class="detail-pane">
+  return `<tr class="detail-row"><td colspan="6"><div class="detail-pane">
     <div class="detail-grid">${fields.join('')}</div>
     <div class="detail-actions">
       ${pdfUrl ? `<a href="${escapeAttr(pdfUrl)}" target="_blank">${zipLabel}</a>` : ''}
@@ -2086,6 +2284,7 @@ function createSimpleBseTab(config) {
     sort: { key: 'submission_date', dir: 'desc' },
     expandedRowId: null,
     loaded: false,
+    favOnly: false,
   };
 
   async function load() {
@@ -2100,7 +2299,7 @@ function createSimpleBseTab(config) {
     } catch (e) {
       state.loaded = true;
       document.getElementById(config.tableBodyId).innerHTML =
-        `<tr><td colspan="5"><div class="empty"><h3>No ${config.emptyLabel} data yet</h3>` +
+        `<tr><td colspan="6"><div class="empty"><h3>No ${config.emptyLabel} data yet</h3>` +
         `<p>Run <code>py Scripts\\fetch_bse_announcements.py --mode ${config.key}</code> to fetch.</p></div></td></tr>`;
     }
   }
@@ -2111,6 +2310,7 @@ function createSimpleBseTab(config) {
     const dFrom = sf.dateFrom ? new Date(sf.dateFrom + 'T00:00:00') : null;
     const dTo   = sf.dateTo   ? new Date(sf.dateTo   + 'T23:59:59') : null;
     state.filtered = state.rows.filter(r => {
+      if (state.favOnly && !isFav(config.key === 'open_offer' ? 'openoffer' : 'buyback', r.id)) return false;
       if (search) {
         const hay = `${r.symbol||''} ${r.company||''} ${r.announcement_subject||''} ${r.announcement_description||''}`.toLowerCase();
         if (!hay.includes(search)) return false;
@@ -2173,12 +2373,14 @@ function createSimpleBseTab(config) {
     document.getElementById(config.tableCountId).textContent =
       `${fmtInt(state.filtered.length)} matching announcements  •  showing ${fmtInt(slice.length)}`;
     if (!slice.length) {
-      tbody.innerHTML = '<tr><td colspan="5"><div class="empty"><h3>No matches</h3></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><h3>No matches</h3></div></td></tr>';
       document.getElementById(config.paginationId).innerHTML = '';
       return;
     }
+    const favTab = config.key === 'open_offer' ? 'openoffer' : 'buyback';
     tbody.innerHTML = slice.map(r => `
       <tr data-id="${r.id}" class="${state.expandedRowId === r.id ? 'expanded' : ''}">
+        ${favCellHtml(favTab, r.id)}
         <td class="center">${escapeHtml(r.submission_date || r.system_date || '')}</td>
         <td class="center"><span class="symbol-cell" data-symbol="${escapeAttr(r.symbol || '')}">${escapeHtml(r.symbol || '')}</span></td>
         <td class="wrap">${escapeHtml(r.company || '')}</td>
@@ -2228,7 +2430,7 @@ function createSimpleBseTab(config) {
       }
     }
     const pdfUrl = r.attachment_url || (r.raw && r.raw.attachment_url);
-    return `<tr class="detail-row"><td colspan="5"><div class="detail-pane">
+    return `<tr class="detail-row"><td colspan="6"><div class="detail-pane">
       <div class="detail-grid">${fields.join('')}</div>
       <div class="detail-actions">
         ${pdfUrl ? `<a href="${escapeAttr(pdfUrl)}" target="_blank">📄 Open Filing PDF ↗</a>` : ''}
@@ -2337,10 +2539,8 @@ document.querySelectorAll('#prefTable thead th[data-sort]').forEach(th => th.add
   sortPrefFiltered(); renderPrefTable();
 }));
 
-// Two extra "reset" buttons (Stage, Allottee) that piggy-back on the existing
-// data-reset handler in the original sidebar wiring need their own logic:
+// Reset buttons (Stage, Allottee) handlers
 document.querySelectorAll('[data-reset]').forEach(el => {
-  // We don't replace existing handlers — just attach our own for the pref-only resets.
   if (el.dataset.reset === 'prefStage' || el.dataset.reset === 'prefAllottee') {
     el.addEventListener('click', () => {
       if (el.dataset.reset === 'prefStage') {
@@ -2356,8 +2556,7 @@ document.querySelectorAll('[data-reset]').forEach(el => {
   }
 });
 
-// When shared filters (search, date, symbol, minValue) change, also refresh
-// the pref or mergers tab if it's the active one.
+// When shared filters change, also refresh the active alt tab
 const _origApply = applyFilters;
 applyFilters = function() {
   _origApply();
@@ -2368,7 +2567,7 @@ applyFilters = function() {
   if (tab === 'buyback'   && buybackTab.state.loaded)   buybackTab.apply();
 };
 
-// Mergers-tab wiring (sort header clicks, page-size dropdown)
+// Mergers-tab wiring
 document.querySelectorAll('#mergersTable thead th[data-sort]').forEach(th => th.addEventListener('click', () => {
   const k = th.dataset.sort;
   if (mergersState.sort.key === k) mergersState.sort.dir = mergersState.sort.dir === 'asc' ? 'desc' : 'asc';
@@ -2379,8 +2578,6 @@ document.getElementById('mergersPageSize').addEventListener('change', e => {
   mergersState.pageSize = +e.target.value; mergersState.page = 1; renderMergersTable();
 });
 
-// Stage chip filters (the Type filter was removed when we restricted
-// this tab to Demergers only — `mergerTypeChips` no longer exists).
 document.getElementById('mergerStageChips').addEventListener('click', e => {
   if (!e.target.classList.contains('chip')) return;
   const v = e.target.dataset.mstage;
@@ -2389,7 +2586,6 @@ document.getElementById('mergerStageChips').addEventListener('click', e => {
   mergersState.page = 1; applyMergersFilters();
 });
 
-// Reset handler for the mergers Stage chip group
 document.querySelectorAll('[data-reset]').forEach(el => {
   if (el.dataset.reset === 'mergerStage') {
     el.addEventListener('click', () => {
@@ -2403,14 +2599,9 @@ document.querySelectorAll('[data-reset]').forEach(el => {
 // =====================================================================
 // BUILD VERSION + STALE-CACHE DETECTION
 // =====================================================================
-// Read the build timestamp publish_to_web.py injected into the HTML
-// head. Show it in the footer so the user can verify which version
-// they're on; poll version.txt every 60s and show a refresh prompt if
-// a newer build has been published.
 const _buildTime = document.querySelector('meta[name="build-time"]')?.content || '';
-const _buildLabel = (_buildTime && _buildTime !== '2026-06-01T23:23:39') ? _buildTime : 'local';
+const _buildLabel = (_buildTime && _buildTime !== '2026-06-02T10:37:28') ? _buildTime : 'local';
 
-// Add the footer
 {
   const footer = document.createElement('div');
   footer.className = 'build-footer';
@@ -2434,16 +2625,59 @@ function _showUpdateBanner(newBuild) {
 }
 
 async function _checkVersion() {
-  if (_buildLabel === 'local') return;   // local dev — no polling needed
+  if (_buildLabel === 'local') return;
   try {
     const r = await fetch('../version.txt?t=' + Date.now(), { cache: 'no-store' });
     if (!r.ok) return;
     const txt = (await r.text()).trim();
     if (txt && txt !== _buildTime) _showUpdateBanner(txt);
-  } catch { /* offline / network blip — ignore, try again next interval */ }
+  } catch { /* network blip — ignore */ }
 }
-setInterval(_checkVersion, 60_000);   // check every minute
-setTimeout(_checkVersion, 2_000);     // also check 2s after load
+setInterval(_checkVersion, 60_000);
+setTimeout(_checkVersion, 2_000);
+
+// =====================================================================
+// FAVORITES — wire toggle buttons + export/import
+// =====================================================================
+{
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.json,application/json';
+  fileInput.style.display = 'none';
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files && fileInput.files[0]) {
+      importFavorites(fileInput.files[0]);
+      fileInput.value = '';
+    }
+  });
+  document.body.appendChild(fileInput);
+
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-fav-action]');
+    if (!btn) return;
+    if (btn.dataset.favAction === 'export') exportFavorites();
+    else if (btn.dataset.favAction === 'import') fileInput.click();
+  });
+
+  function _refreshFavToggleLabel(tab, on) {
+    const btn = document.getElementById('favToggle_' + tab);
+    if (btn) btn.innerHTML = (on ? '★' : '☆') + ' Show favorites only';
+  }
+
+  const toggleMap = [
+    { id: 'favToggle_insider',   apply: () => { state.filters.favOnly = !state.filters.favOnly; document.getElementById('favToggle_insider').classList.toggle('active', state.filters.favOnly); state.page = 1; applyFilters(); _refreshFavToggleLabel('insider', state.filters.favOnly); } },
+    { id: 'favToggle_pref',      apply: () => { prefState.filters.favOnly = !prefState.filters.favOnly; document.getElementById('favToggle_pref').classList.toggle('active', prefState.filters.favOnly); prefState.page = 1; applyPrefFilters(); _refreshFavToggleLabel('pref', prefState.filters.favOnly); } },
+    { id: 'favToggle_mergers',   apply: () => { mergersState.filters.favOnly = !mergersState.filters.favOnly; document.getElementById('favToggle_mergers').classList.toggle('active', mergersState.filters.favOnly); mergersState.page = 1; applyMergersFilters(); _refreshFavToggleLabel('mergers', mergersState.filters.favOnly); } },
+    { id: 'favToggle_openoffer', apply: () => { openOfferTab.state.favOnly = !openOfferTab.state.favOnly; document.getElementById('favToggle_openoffer').classList.toggle('active', openOfferTab.state.favOnly); openOfferTab.state.page = 1; openOfferTab.apply(); _refreshFavToggleLabel('openoffer', openOfferTab.state.favOnly); } },
+    { id: 'favToggle_buyback',   apply: () => { buybackTab.state.favOnly = !buybackTab.state.favOnly; document.getElementById('favToggle_buyback').classList.toggle('active', buybackTab.state.favOnly); buybackTab.state.page = 1; buybackTab.apply(); _refreshFavToggleLabel('buyback', buybackTab.state.favOnly); } },
+  ];
+  for (const t of toggleMap) {
+    const el = document.getElementById(t.id);
+    if (el) el.addEventListener('click', t.apply);
+  }
+
+  _updateFavCounts();
+}
 
 loadData();
 </script>
