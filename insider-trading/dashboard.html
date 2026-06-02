@@ -11,7 +11,7 @@
 <meta http-equiv="Expires" content="0">
 <!-- publish_to_web.py rewrites this on every push; the JS polls
      /version.txt and prompts the user to refresh if it sees a newer build. -->
-<meta name="build-time" content="2026-06-02T10:37:28">
+<meta name="build-time" content="2026-06-02T15:43:47">
 <title>Catalyst — Indian Market Special Situations</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -166,6 +166,29 @@
     transition: all .15s;
   }
   .fav-bar .icon-btn:hover { background: var(--primary-soft); border-color: var(--primary); }
+
+  /* Unified favorites tab — colour-coded source pills */
+  .tab.tab-favorites { color: var(--other); font-weight: 600; }
+  .src-pill {
+    display: inline-block; padding: 3px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; letter-spacing: .02em;
+    border: 1px solid transparent; white-space: nowrap;
+  }
+  .src-insider   { background: #e0e7ff; color: #3730a3; border-color: #c7d2fe; }
+  .src-pref      { background: #ede9fe; color: #5b21b6; border-color: #ddd6fe; }
+  .src-mergers   { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+  .src-openoffer { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+  .src-buyback   { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+  [data-theme="dark"] .src-insider   { background: #1e1b4b; color: #c7d2fe; border-color: #312e81; }
+  [data-theme="dark"] .src-pref      { background: #2e1065; color: #ddd6fe; border-color: #4c1d95; }
+  [data-theme="dark"] .src-mergers   { background: #422006; color: #fde68a; border-color: #78350f; }
+  [data-theme="dark"] .src-openoffer { background: #052e16; color: #a7f3d0; border-color: #064e3b; }
+  [data-theme="dark"] .src-buyback   { background: #4c0519; color: #fecaca; border-color: #7f1d1d; }
+  .fav-open-link {
+    color: var(--primary); text-decoration: none; font-size: 12px;
+    padding: 4px 8px; border-radius: 6px; border: 1px solid transparent;
+  }
+  .fav-open-link:hover { background: var(--primary-soft); border-color: var(--primary); }
 
   .row { display: flex; gap: 8px; }
   .row > * { flex: 1; }
@@ -654,6 +677,7 @@
       <div class="tab" data-tab="mergers">Demergers / Spinoffs <span class="count" id="tabCountMergers"></span></div>
       <div class="tab" data-tab="openoffer">Open Offers <span class="count" id="tabCountOpenOffer"></span></div>
       <div class="tab" data-tab="buyback">Buy Backs <span class="count" id="tabCountBuyback"></span></div>
+      <div class="tab tab-favorites" data-tab="favorites">★ Favorites <span class="count" id="tabCountFavorites"></span></div>
     </div>
 
     <!-- Insider tab content -->
@@ -913,6 +937,46 @@
         <div class="pagination" id="buybackPagination"></div>
       </div>
     </div><!-- /buyback tab -->
+
+    <!-- Unified Favorites tab — all starred rows from all 5 sources -->
+    <div class="tab-content" data-tab-content="favorites">
+      <div class="fav-bar">
+        <span id="favSummary" style="font-size:13px;font-weight:600">0 favorites across all tabs</span>
+        <span class="spacer"></span>
+        <button class="icon-btn" data-fav-action="export" title="Download your favorites as JSON">⬇ Export favorites</button>
+        <button class="icon-btn" data-fav-action="import" title="Load favorites from a JSON file">⬆ Import favorites</button>
+        <button class="icon-btn" id="favClearAllBtn" title="Remove every favorite (asks first)" style="border-color:var(--sell);color:var(--sell)">🗑 Clear all</button>
+      </div>
+      <div class="card table-card">
+        <div class="table-toolbar">
+          <div class="count" id="favTableCount">—</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:12px;color:var(--text-muted)">Filter by source</span>
+            <div class="chip-row" id="favSourceChips">
+              <span class="chip" data-src="insider">Insider</span>
+              <span class="chip" data-src="pref">Preferential</span>
+              <span class="chip" data-src="mergers">Demerger</span>
+              <span class="chip" data-src="openoffer">Open Offer</span>
+              <span class="chip" data-src="buyback">Buy Back</span>
+            </div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="favTable">
+            <thead><tr>
+              <th class="fav-cell" title="Click to remove from favorites">★</th>
+              <th data-sort="src">Source</th>
+              <th data-sort="date">Date</th>
+              <th data-sort="symbol">Symbol</th>
+              <th data-sort="company">Company</th>
+              <th data-sort="summary">Summary</th>
+              <th>Open</th>
+            </tr></thead>
+            <tbody id="favTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- /favorites tab -->
   </main>
 </div>
 
@@ -2600,7 +2664,7 @@ document.querySelectorAll('[data-reset]').forEach(el => {
 // BUILD VERSION + STALE-CACHE DETECTION
 // =====================================================================
 const _buildTime = document.querySelector('meta[name="build-time"]')?.content || '';
-const _buildLabel = (_buildTime && _buildTime !== '2026-06-02T10:37:28') ? _buildTime : 'local';
+const _buildLabel = (_buildTime && _buildTime !== '2026-06-02T15:43:47') ? _buildTime : 'local';
 
 {
   const footer = document.createElement('div');
@@ -2635,6 +2699,265 @@ async function _checkVersion() {
 }
 setInterval(_checkVersion, 60_000);
 setTimeout(_checkVersion, 2_000);
+
+// =====================================================================
+// UNIFIED FAVORITES TAB — every starred row from all 5 sources in one
+// sortable table. Click ★ to unstar (drops the row). Click "Open ↗"
+// to jump to the source tab with the row pre-expanded.
+// =====================================================================
+const favTabState = {
+  filteredSources: new Set(),  // empty = show all sources
+  sort: { key: 'date', dir: 'desc' },
+};
+
+// Per-source adapter: label, pill colour, and how to pull a display row
+// out of the source tab's loaded JSON. Adding a 7th tab is one entry.
+const FAV_SOURCES = {
+  insider: {
+    label: 'Insider', pillClass: 'src-insider', targetTab: 'insider',
+    rowsRef: () => state.rows,
+    loaded:  () => Array.isArray(state.rows) && state.rows.length > 0,
+    ensureLoad: () => loadData(),
+    adapt: r => ({
+      date:    r.broadcast_date || r.intimation_date || '',
+      symbol:  r.symbol || '', company: r.company || '',
+      summary: [
+        r.transaction_type || r.bucket || '',
+        r.acquirer_name || r.detail_acquirer || '',
+        r.value_num ? fmtCr(r.value_num) : '',
+      ].filter(Boolean).join(' · '),
+    }),
+  },
+  pref: {
+    label: 'Preferential', pillClass: 'src-pref', targetTab: 'pref',
+    rowsRef: () => prefState.rows,
+    loaded:  () => prefState.loaded,
+    ensureLoad: () => loadPrefData(),
+    adapt: r => ({
+      date:    r.board_res_date || r.system_date || '',
+      symbol:  r.symbol || '', company: r.company || '',
+      summary: [
+        r.stage || '',
+        r.allottee_category || r.announcement_description || '',
+        r.amount_raised_num ? fmtCr(r.amount_raised_num) : '',
+      ].filter(Boolean).join(' · '),
+    }),
+  },
+  mergers: {
+    label: 'Demerger', pillClass: 'src-mergers', targetTab: 'mergers',
+    rowsRef: () => mergersState.rows,
+    loaded:  () => mergersState.loaded,
+    ensureLoad: () => loadMergersData(),
+    adapt: r => ({
+      date:    r.submission_date || r.system_date || '',
+      symbol:  r.symbol || '', company: r.company || '',
+      summary: [r._stage || '', r.announcement_subject || ''].filter(Boolean).join(' · '),
+    }),
+  },
+  openoffer: {
+    label: 'Open Offer', pillClass: 'src-openoffer', targetTab: 'openoffer',
+    rowsRef: () => openOfferTab.state.rows,
+    loaded:  () => openOfferTab.state.loaded,
+    ensureLoad: () => openOfferTab.load(),
+    adapt: r => ({
+      date:    r.submission_date || r.system_date || '',
+      symbol:  r.symbol || '', company: r.company || '',
+      summary: r.announcement_subject || r.announcement_description || '',
+    }),
+  },
+  buyback: {
+    label: 'Buy Back', pillClass: 'src-buyback', targetTab: 'buyback',
+    rowsRef: () => buybackTab.state.rows,
+    loaded:  () => buybackTab.state.loaded,
+    ensureLoad: () => buybackTab.load(),
+    adapt: r => ({
+      date:    r.submission_date || r.system_date || '',
+      symbol:  r.symbol || '', company: r.company || '',
+      summary: r.announcement_subject || r.announcement_description || '',
+    }),
+  },
+};
+
+// Auto-load any source that has favorites but isn't loaded yet.
+async function _ensureFavoriteSourcesLoaded() {
+  const tasks = [];
+  for (const tab of FAV_TABS) {
+    const src = FAV_SOURCES[tab];
+    if (!src) continue;
+    if (favorites[tab].size > 0 && !src.loaded()) tasks.push(Promise.resolve(src.ensureLoad()));
+  }
+  if (tasks.length) await Promise.all(tasks);
+}
+
+function _buildFavoritesList() {
+  const out = [];
+  for (const tab of FAV_TABS) {
+    const src = FAV_SOURCES[tab];
+    if (!src) continue;
+    const wanted = favorites[tab];
+    if (!wanted.size) continue;
+    const rows = src.rowsRef();
+    if (!Array.isArray(rows)) continue;
+    for (const r of rows) {
+      if (!wanted.has(String(r.id))) continue;
+      const a = src.adapt(r);
+      out.push({
+        srcTab: tab, srcLabel: src.label, srcPillClass: src.pillClass,
+        targetTab: src.targetTab, id: r.id,
+        date: a.date, symbol: a.symbol, company: a.company, summary: a.summary,
+      });
+    }
+  }
+  return out;
+}
+
+function _sortFavoritesList(list) {
+  const { key, dir } = favTabState.sort;
+  const mul = dir === 'asc' ? 1 : -1;
+  list.sort((a, b) => {
+    let av = a[key], bv = b[key];
+    if (key === 'date') {
+      av = parseDate(a.date)?.getTime() || 0;
+      bv = parseDate(b.date)?.getTime() || 0;
+    } else if (typeof av === 'string') {
+      av = av.toLowerCase();
+      bv = (bv || '').toLowerCase();
+    }
+    if (av == null || av === '') return 1;
+    if (bv == null || bv === '') return -1;
+    if (av < bv) return -1 * mul;
+    if (av > bv) return  1 * mul;
+    return 0;
+  });
+  return list;
+}
+
+async function renderFavoritesTab() {
+  const tbody = document.getElementById('favTableBody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">Loading favorites from all tabs…</td></tr>';
+  await _ensureFavoriteSourcesLoaded();
+  _renderFavoritesNow();
+}
+
+function _renderFavoritesNow() {
+  let list = _buildFavoritesList();
+  const totalFav = list.length;
+  const srcSel = favTabState.filteredSources;
+  if (srcSel.size) list = list.filter(r => srcSel.has(r.srcTab));
+  _sortFavoritesList(list);
+
+  document.getElementById('favSummary').textContent =
+    `${totalFav} favorite${totalFav === 1 ? '' : 's'} across all tabs`;
+  document.getElementById('favTableCount').textContent =
+    `${fmtInt(list.length)} matching favorite${list.length === 1 ? '' : 's'}`;
+  const badge = document.getElementById('tabCountFavorites');
+  if (badge) badge.textContent = totalFav;
+
+  const tbody = document.getElementById('favTableBody');
+  if (!list.length) {
+    if (totalFav === 0) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><h3>No favorites yet</h3><p>Click the ☆ next to any row on any tab to save it here.</p></div></td></tr>`;
+    } else {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><h3>No favorites match this source filter</h3><p>Clear the source filter chips above to see all ${totalFav} favorites.</p></div></td></tr>`;
+    }
+    return;
+  }
+
+  tbody.innerHTML = list.map(r => `
+    <tr data-id="${r.id}" data-target="${r.targetTab}">
+      ${favCellHtml(r.srcTab, r.id)}
+      <td class="center"><span class="src-pill ${r.srcPillClass}">${escapeHtml(r.srcLabel)}</span></td>
+      <td class="center">${escapeHtml(r.date || '')}</td>
+      <td class="center">${escapeHtml(r.symbol || '')}</td>
+      <td class="wrap">${escapeHtml(r.company || '')}</td>
+      <td class="wrap" style="font-size:12px">${escapeHtml((r.summary || '').slice(0, 160))}</td>
+      <td class="center"><a class="fav-open-link" href="#" data-target="${r.targetTab}" data-id="${escapeAttr(String(r.id))}">Open ↗</a></td>
+    </tr>
+  `).join('');
+
+  document.querySelectorAll('#favTable thead th').forEach(th => {
+    const k = th.dataset.sort;
+    th.innerHTML = th.innerHTML.replace(/ ?[▲▼]$/, '');
+    if (k === favTabState.sort.key) th.innerHTML += ' ' + (favTabState.sort.dir === 'asc' ? '▲' : '▼');
+  });
+}
+
+function _wireFavTabHandlers() {
+  const chipBox = document.getElementById('favSourceChips');
+  if (chipBox) chipBox.addEventListener('click', e => {
+    if (!e.target.classList.contains('chip')) return;
+    const src = e.target.dataset.src;
+    if (favTabState.filteredSources.has(src)) { favTabState.filteredSources.delete(src); e.target.classList.remove('active'); }
+    else { favTabState.filteredSources.add(src); e.target.classList.add('active'); }
+    _renderFavoritesNow();
+  });
+
+  document.querySelectorAll('#favTable thead th[data-sort]').forEach(th => th.addEventListener('click', () => {
+    const k = th.dataset.sort;
+    if (favTabState.sort.key === k) favTabState.sort.dir = favTabState.sort.dir === 'asc' ? 'desc' : 'asc';
+    else { favTabState.sort.key = k; favTabState.sort.dir = 'desc'; }
+    _renderFavoritesNow();
+  }));
+
+  const favBody = document.getElementById('favTableBody');
+  if (favBody) favBody.addEventListener('click', e => {
+    const link = e.target.closest('a.fav-open-link');
+    if (!link) return;
+    e.preventDefault();
+    const target = link.dataset.target;
+    const id     = link.dataset.id;
+    switchTab(target);
+    setTimeout(() => {
+      if (target === 'insider')        { state.expandedRowId        = id; renderTable(); }
+      else if (target === 'pref')      { prefState.expandedRowId    = id; renderPrefTable(); }
+      else if (target === 'mergers')   { mergersState.expandedRowId = id; renderMergersTable(); }
+      else if (target === 'openoffer') { openOfferTab.state.expandedRowId = id; openOfferTab.apply(); }
+      else if (target === 'buyback')   { buybackTab.state.expandedRowId   = id; buybackTab.apply(); }
+      const row = document.querySelector(`tr[data-id="${CSS.escape(String(id))}"]`);
+      if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+  });
+
+  const clearBtn = document.getElementById('favClearAllBtn');
+  if (clearBtn) clearBtn.addEventListener('click', () => {
+    let totalFav = 0;
+    for (const t of FAV_TABS) totalFav += favorites[t].size;
+    if (totalFav === 0) return;
+    if (!confirm(`Remove all ${totalFav} favorites from every tab? This cannot be undone (but you can re-star anything later).`)) return;
+    for (const t of FAV_TABS) favorites[t].clear();
+    _saveFavorites();
+    _updateFavCounts();
+    _renderFavoritesNow();
+    document.querySelectorAll('.fav-btn.active').forEach(btn => {
+      btn.classList.remove('active');
+      btn.textContent = '☆';
+    });
+  });
+}
+
+// Extend star-click refresh: when the unified tab is active, redraw it too.
+const _origRefreshFavToggle = _refreshActiveTabIfFavOnly;
+_refreshActiveTabIfFavOnly = function() {
+  _origRefreshFavToggle();
+  if (document.body.getAttribute('data-active-tab') === 'favorites') _renderFavoritesNow();
+};
+
+// Hook switchTab so the Favorites tab triggers a render on activation.
+const _origSwitchTab = switchTab;
+switchTab = function(name) {
+  _origSwitchTab(name);
+  if (name === 'favorites') renderFavoritesTab();
+};
+
+// Keep the Favorites tab badge counter live whenever any count changes.
+const _origUpdateFavCounts = _updateFavCounts;
+_updateFavCounts = function() {
+  _origUpdateFavCounts();
+  let total = 0;
+  for (const t of FAV_TABS) total += favorites[t].size;
+  const badge = document.getElementById('tabCountFavorites');
+  if (badge) badge.textContent = total;
+};
 
 // =====================================================================
 // FAVORITES — wire toggle buttons + export/import
@@ -2676,6 +2999,7 @@ setTimeout(_checkVersion, 2_000);
     if (el) el.addEventListener('click', t.apply);
   }
 
+  _wireFavTabHandlers();
   _updateFavCounts();
 }
 
